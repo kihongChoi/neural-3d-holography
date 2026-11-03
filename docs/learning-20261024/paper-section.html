@@ -1,0 +1,73 @@
+<section class="chapter" id="s7"><div class="num">07 · 10월 24–25일 복소장 모델 재현</div>
+<h2>논문 구조를 따른 모델은 실제 출력도 개선했는가?</h2>
+<p class="lead">고정 15 mm 평면의 새 영상 8장에서 CNNpropCNN은 SGD-ASM보다 진폭 MSE를 낮췄습니다. 그러나 DPAC보다 모든 지표가 좋은 것은 아닙니다. 평균 SSIM은 DPAC이 더 높았고, 영상 0868의 고정 밝기 오차도 DPAC이 더 작았습니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명 · 방법과 비교 조건</div>
+<h3>복소장 보정 구조와 학습 절차를 원문에 맞췄다</h3>
+<p><b>CNNpropCNN</b>은 SLM 복소장을 보정하는 CNN, 물리적 전파, 목표면 복소장을 보정하는 CNN을 순서대로 적용하는 모델입니다(03 단원). 저자 공개 U-Net을 그대로 사용해 실수·허수 두 채널을 입력·출력했습니다. 색별 독립 모델은 각각 약 6,675만 개의 학습 파라미터를 갖습니다. <a class="cite" href="#paper">[논문 §3.2–3.3]</a></p>
+<p><b>DPAC(이중 위상 진폭 부호화)</b>은 역전파한 목표 복소장의 진폭과 위상을 두 위상 패턴으로 바꾸어 교대로 배치하는 방법입니다. <b>SGD-ASM</b>과 <b>SGD-CNNpropCNN</b>은 각각 ASM과 학습된 복소장 모델을 통해 목표 영상의 SLM 위상을 반복 최적화합니다. 여기서 SGD는 반복 기울기 최적화 방식의 이름이며 실제 갱신기는 Adam입니다.</p>
+<p>색별로 DPAC 100쌍과 SGD 1,000쌍을 새로 촬영하고, 전체 1,100쌍을 유지한 채 Adam 학습률 0.0005, 배치 크기 1, 진폭 L1 손실로 학습했습니다. 검증 손실이 10회 연속 개선되지 않으면 종료하고 가장 좋은 모델을 선택했습니다. <a class="cite" href="#e-paper-run">[실측 E4]</a></p>
+<p>원 논문은 8개 깊이를 학습합니다. 이번 장비는 <b>고정 15 mm 한 평면</b>입니다. 단일 평면의 모델 학습·위상 생성·실제 출력 평가까지 수행했으며, 다중 깊이 일반화·RGBD 감독·ADMM·초점 밖 스페클 억제는 평가하지 않았습니다.</p>
+<details><summary>원문과 일치한 항목과 달라진 항목</summary>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>원 논문 / 공개 구현</th><th>이번 실험</th></tr></thead><tbody>
+<tr><td>신경망</td><td>실수·허수 2채널 U-Net, SLM → 전파 → 목표면</td><td>저자 U-Net, SLM 8단계·채널 32–512, 목표면 5단계·채널 8–128</td></tr>
+<tr><td>학습 패턴</td><td>깊이마다 DPAC 100 + SGD 1,000, 8개 깊이</td><td>동일한 구성의 1개 평면, 색별 1,100쌍. 이전 소형 모델 데이터로 대체하지 않음</td></tr>
+<tr><td>학습</td><td>색별 독립 Adam 5×10<sup>−4</sup>, 배치 1, L1, 검증 미개선 10회</td><td>동일. 200회 안전 상한에는 도달하지 않음</td></tr>
+<tr><td>학습 위상 생성</td><td>무작위 초기 위상과 무작위 반복 수</td><td>반복 수 50–200의 정수 균등 분포는 본문에 범위가 없어 정한 별도 선택</td></tr>
+<tr><td>광학·촬영</td><td>논문 장비의 깊이·파장·카메라 보정</td><td>15 mm, 638/520/450 nm, 픽셀 피치 6.4 μm, 이 장비의 개구·좌표·백색 보정</td></tr>
+<tr><td>위상 생성 비교</td><td>학습 모델을 통한 반복 최적화</td><td>두 SGD 모두 동일 초기 위상, Adam 0.01, 1,000회. DPAC은 직접 부호화. 추가 CITL 없음</td></tr>
+</tbody></table></div><p>미니배치 1과 전체 해상도를 유지하기 위해 활성값을 재계산했습니다. 계산 정밀도는 float32/complex64이며 혼합 정밀도를 쓰지 않았습니다. 물리 전파는 이 장비에 보정된 ASM이므로 논문 장비의 정확한 수치 복제는 아닙니다.</p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div>
+<h3>새 지도로 경로를 계산한 뒤 실제로 도착해 본다</h3>
+<p>이전 소형 모델은 도착한 파도의 높이를 고치는 보정표에 가까웠습니다. 이번에는 출발점과 도착점에서 파동의 높이와 타이밍을 함께 보정합니다. 높이는 진폭에, 타이밍은 위상에 대응합니다.</p>
+<p>학습은 여러 경로의 관측 기록으로 지도를 고치는 과정입니다. 검증 기록은 어느 지도를 선택할지 정합니다. 시험 기록은 고른 지도의 예측을 확인하며, 마지막 8개 새 목적지는 그 지도로 실제 경로를 설계해 도착하는 시험입니다.</p>
+<p>카메라 재촬영은 설계 결과를 확인하는 데만 사용했습니다. 이번 최종 비교에서는 새 타깃의 촬영 결과를 다시 위상 갱신에 넣는 CITL을 수행하지 않았습니다.</p>
+<p>한 높이의 목적지에서 잘 도착했다고 여러 층의 목적지까지 검증한 것은 아닙니다. 이 실험이 지지하는 범위는 현재 장비의 한 평면입니다.</p>
+<p class="note">비유의 지도는 광학 전파 모델입니다. 빛은 가능한 경로 중 하나만 선택하는 대신 여러 경로의 복소장이 간섭하므로, 단순한 경로 선택과 물리적으로 같지는 않습니다.</p>
+</aside></div>
+
+<div class="wide"><h3>학습 종료와 미사용 시험 쌍의 예측</h3>
+<p>검증은 12개 원본에서 만든 22쌍, 시험도 별도의 12개 원본에서 만든 22쌍입니다. 최종 출력 평가 8개 원본은 이들과 겹치지 않게 실행 전에 지정했습니다. 아래 시험 MSE는 <b>동일한 위상에 대한 모델 예측과 실제 촬영</b>의 차이로, 목표 영상과 최종 출력을 비교하는 아래 표와 구분해야 합니다.</p>
+__PAPER_TRAIN_TABLE__
+<div class="chart-wrap" tabindex="0" aria-label="학습 검증 곡선 가로 탐색"><svg id="paper-train-chart" class="chart" viewBox="0 0 940 330" role="img" aria-label="색별 22쌍 검증 진폭 L1 학습 곡선"></svg></div>
+<div class="legend"><span style="--c:#a34a27">적색</span><span style="--c:#126d6a">녹색</span><span style="--c:#345ba0">청색</span></div>
+<p class="note">검증 L1은 22쌍 평균, 진폭 단위는 기준 백색으로 정규화한 무차원 값입니다. 색마다 종료 시점이 다릅니다. 검증 미개선 종료가 전역 수렴을 증명하지는 않습니다. 전체 재개 실행은 약 24.1시간 걸렸으며 2026-10-25 19:43 KST 종료됐습니다.</p></div>
+
+<div class="cols"><article class="card"><div class="label">전문 설명 · 밝기와 형태의 구분</div><h3>고정 밝기 오차와 보정 후 오차를 함께 본다</h3>
+<p>고정 백색 오차는 촬영 진폭을 그대로 목표 진폭과 비교합니다. 보정 후 오차는 각 촬영·색 채널에 대해 목표를 가장 잘 맞추는 하나의 양의 배율을 사후 계산합니다.</p>
+<div class="equation">\[E_0=\frac{1}{N}\|a-t\|_2^2,\quad s^*=\frac{\langle a,t\rangle}{\langle a,a\rangle},\quad E_s=\frac{1}{N}\|s^*a-t\|_2^2.\]</div>
+<p class="symbols">\(a\): 기준 백색으로 정규화한 실측 진폭, \(t\): 목표 진폭, \(N\): 평가 픽셀 수(1680×960), \(s^*\): 채널별 스칼라 배율. 모두 정규화된 무차원 값입니다. 분모가 0에 가까우면 계산에서는 작은 양수로 제한합니다.</p>
+<p>보정은 전체 밝기 차이를 줄이므로 \(E_s\leq E_0\)입니다. 특수하게 \(a=ct\), \(c&gt;0\)이면 \(s^*=1/c\)이고 \(E_s=0\)이 됩니다. 밝기가 틀렸어도 모양만 정확하면 보정 오차는 0이 될 수 있다는 뜻입니다.</p>
+<p><b>영상 0868:</b> CNN의 고정 진폭 MSE는 0.225655로 DPAC의 0.122372보다 큽니다. CNN에 사후 배율을 적용하면 MSE는 0.049231로 낮아지지만, 평균 진폭 배율은 약 2.206입니다. 이 값을 실제 광량이 확보된 결과로 해석하면 안 됩니다.</p>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>사진이 어두운 것과 모양이 틀린 것은 다른 문제다</h3>
+<p>사진의 전체 노출만 올려 원본과 가까워진다면 밝기 불일치가 큰 것입니다. 그러나 노출 보정은 흐린 경계나 잘못된 구조를 모두 고쳐 주지 않습니다. 고정 밝기 MSE는 두 문제를 함께 벌점으로 주고, 보정 MSE는 전체 밝기를 맞춘 뒤 남은 차이를 봅니다.</p>
+<p>이 배율은 목표 영상을 알고 계산한 값입니다. 장비의 레이저 출력을 올려 같은 사진을 새로 촬영한 것이 아닙니다. RGB마다 따로 맞췄으므로 실제 색 균형의 오차도 일부 줄여 보일 수 있습니다.</p>
+<p><b>PSNR</b>은 오차가 작을수록 커지는 로그 점수, <b>SSIM</b>은 국소 밝기·대비·구조의 유사도를 보는 지표입니다. 두 점수가 항상 같은 방법을 고르지는 않습니다. 이번에는 CNN의 평균 PSNR이 높았지만 DPAC의 평균 SSIM이 더 높았습니다.</p>
+<p class="note">보정 sRGB 지표는 진폭에 배율 적용 → 제곱 → 광강도 0–1 제한 → sRGB 변환 후 계산했습니다. 이 제한과 채널별 보정 때문에 원 논문 표의 PSNR과 수치상 동등하지 않습니다.</p>
+</aside></div>
+
+<div class="wide"><h3>8개 새 영상 · 세 방법 · 각각 3회 실제 재촬영</h3>
+<p>모든 방법은 같은 장비 보정을 사용합니다. CNNpropCNN만 학습용 실측 1,100쌍/색을 추가로 이용합니다. 두 SGD의 초기 위상·반복 수는 동일하며, 최종 촬영은 반복마다 방법 순서를 무작위로 바꿨습니다. 아래 값은 <b>각 채널 → 반복 3회 → 영상 8장</b>에 같은 가중치를 준 평균입니다. PSNR은 개별 점수의 평균이며 평균 MSE에 로그를 적용한 값이 아닙니다. <a class="cite" href="#e-paper-run">[실측 E4]</a></p>
+__PAPER_MEANS_TABLE__
+<p><b>조건부 지지:</b> CNN은 SGD-ASM 대비 고정 진폭 MSE를 38.9%, 배율 보정 진폭 MSE를 67.4% 낮췄으며 각각 8/8장에서 개선됐습니다. DPAC 대비로는 고정 MSE 44.8%, 보정 MSE 58.9% 감소했지만, 고정 MSE 개선은 7/8장입니다. DPAC보다 평균 SSIM이 높다는 가설은 이번 8장에서는 기각됩니다.</p>
+<div class="controls"><label for="paper-metric"><b>비교 지표</b></label><select id="paper-metric"><option value="fixed_white_mse">고정 백색 진폭 MSE</option><option value="fitted_amplitude_mse">배율 보정 진폭 MSE</option><option value="fitted_clipped_srgb_ssim">보정 sRGB SSIM</option></select><button id="paper-metric-reset">지표 초기화</button></div>
+<div class="chart-wrap" tabindex="0" aria-label="새 영상별 세 방법 비교 그래프 가로 탐색"><svg id="paper-result-chart" class="chart" viewBox="0 0 940 370" role="img" aria-label="8개 영상의 방법별 실측 지표"></svg></div>
+<div class="legend"><span style="--c:#a34a27">DPAC</span><span style="--c:#657788">SGD-ASM</span><span style="--c:#126d6a">SGD-CNNpropCNN</span></div><p class="readout" id="paper-metric-readout" aria-live="polite"></p>
+<div class="controls"><label for="paper-target"><b>영상</b></label><select id="paper-target"></select><label for="paper-display"><b>표시 밝기</b></label><select id="paper-display"><option value="fixed">고정 백색</option><option value="fitted">채널별 배율 보정</option></select><button id="paper-target-reset">영상 초기화</button></div>
+<div id="paper-images" class="tiles"></div><p class="readout" id="paper-image-readout" aria-live="polite"></p>
+<p class="note">출처: DIV2K validation 중 이전 실험과 새 학습·검증·시험 원본에서 제외한 8장. 선택은 결과 확인 전 고정했습니다. 실제 평가 영역 1680×960. 미리보기는 <b>첫 번째 재촬영</b>을 축소하고 0–1 범위로 제한한 sRGB 영상이며, 표는 세 재촬영의 전체 해상도 수치입니다. 3회 재촬영은 동일 위상에 대한 단기 반복으로, 학습 재시드·장비 재설치 반복이 아닙니다.</p>
+<details><summary>8장 수치, 촬영 반복 변동과 기준 광량 변화</summary>__PAPER_TARGET_TABLE__<p>__PAPER_DRIFT__</p><p>__PAPER_REPEAT__</p><p>고정 기준 위상의 평균 광량은 공간 정합·색 정확도·레이저 위상 안정성을 모두 검증하는 지표는 아닙니다. 반복 3회의 표준편차를 모델 일반화의 신뢰구간으로 해석하지 않습니다.</p></details>
+</div>
+
+<div class="cols"><article class="card"><div class="label">전문 설명 · 유한차분 응답</div><h3>중앙 3×3 픽셀을 π만큼 바꿨을 때</h3>
+<p>영 위상과 중앙 3×3 픽셀에 π를 준 위상을 세 쌍 촬영하고, 두 번째 쌍은 순서를 뒤집었습니다. 각 조건의 평균 영상 차이를 ASM·CNN의 예측 차이와 비교했습니다. 이는 논문 Fig. 6의 유한 변화 측정에 대응합니다.</p>
+<div class="equation">\[\Delta A=A(\phi_0+\pi B)-A(\phi_0),\qquad C=\frac{\langle\Delta A_m,\Delta A_c\rangle}{\|\Delta A_m\|_2\|\Delta A_c\|_2}.\]</div>
+<p class="symbols">\(\phi_0\): 영 위상(rad), \(B\): 중앙 3×3 블록에서 1인 마스크, \(\Delta A\): 정규화 진폭 변화, 아래첨자 \(m,c\): 모델·카메라, \(C\): 코사인 유사도(−1–1). 1에 가까울수록 변화 영상의 방향이 같습니다.</p>
+__PAPER_PROBE_TABLE__
+<p>진폭 응답 코사인 유사도는 세 색 모두 높아졌습니다. 그러나 0.37–0.49 수준으로 완전한 일치는 아니며, 광강도 응답 RMSE는 청색에서 ASM 0.016135 → CNN 0.016359로 약간 커졌습니다. <b>검사한 유한 변화의 일부 지표 개선을 지지</b>하며, 모든 위상의 미분 정확성은 판단 유보입니다. <a class="cite" href="#e-paper-probe">[실측 E5]</a></p>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>한 번의 조작 반응이 맞는지 확인한다</h3>
+<p>운전대를 정해진 만큼 움직였을 때 실제 차가 움직인 방향과 지도에서 예상한 방향을 비교하는 시험입니다. 이번 CNN은 이 한 조작에서 세 색의 응답 방향을 ASM보다 더 가깝게 예측했습니다.</p>
+<p>하지만 한 위치에서 큰 조작을 한 결과만으로 모든 도로에서 아주 작은 조작까지 정확하다고 할 수 없습니다. π 위상 변화는 무한소 변화가 아니며, 하나의 중앙 블록만 측정했습니다.</p>
+<p>코사인 유사도는 방향을 보므로 크기가 틀려도 높을 수 있습니다. RMSE(평균제곱오차의 제곱근)는 응답의 크기 차이까지 봅니다. 청색에서 두 지표의 판단이 달라진 이유를 구분해 읽어야 합니다.</p>
+</aside></div>
+<div class="wide"><h3>이번 결과가 지지하는 범위</h3><p><b>지지:</b> 현재 장비·고정 15 mm·새 영상 8장·동일 SGD 초기화와 1,000회 조건에서, 학습된 CNNpropCNN은 SGD-ASM보다 실제 출력의 고정·보정 진폭 MSE를 낮췄습니다. <b>판단 유보:</b> 3D 깊이 일반화, ADMM의 스페클 억제, 모든 초기 위상의 안정적 수렴, 원 논문 수치의 동등 재현.</p><p>10월 22–23일 소형 모델의 평균 악화 결과는 그대로 남습니다. 이번에는 구조뿐 아니라 학습 데이터 보존, 촬영 세션, 최적화 횟수, 평가 영상도 바뀌었으므로 개선 전부를 구조 하나의 효과로 귀속할 수 없습니다. 구조의 독립적인 효과에는 동일 데이터·초기화·반복 수의 절제 실험이 필요합니다.</p><p>후속 연구에서는 0868의 광효율과 밝기 손실을 직접 측정하고, 여러 학습·위상 초기화 및 다양한 위치·크기의 위상 섭동으로 재현성을 평가하는 것이 적절합니다. 이는 후속 제안이며 이번 결과에 포함된 측정은 아닙니다.</p></div>
+</section>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchtop · Live training</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1118;--panel:#131d29;--border:#283747;--muted:#9eafc1;--text:#e9f0f7;--mint:#6ce3bd;--blue:#75adff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,"Segoe UI",sans-serif}main{max-width:1540px;margin:auto;padding:28px 32px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}h1{font-size:28px;letter-spacing:-1px;margin:4px 0}h2{font-size:17px;margin:0 0 16px}p{margin:6px 0}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--mint)}.muted{color:var(--muted)}.small{font-size:12px}.badge{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:30px;padding:8px 14px;font-size:12px}.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.running .dot{background:var(--mint);box-shadow:0 0 12px #6ce3bd88}.failed .dot,.stale .dot{background:#ffb96e}.completed .dot{background:var(--blue)}
+.toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:end;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin:24px 0 16px}label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}select,button{font:inherit;color:var(--text);background:#1b2837;border:1px solid #35485d;border-radius:7px;padding:8px 11px}select{min-width:140px}#experiment{max-width:320px}button{cursor:pointer}button:hover{border-color:var(--mint)}.check{flex-direction:row;align-items:center;padding:9px 0}input{accent-color:var(--mint)}.flex{display:flex;align-items:center;gap:12px}.spread{justify-content:space-between}.grow{flex:1}#notice{color:var(--muted);margin-bottom:18px;overflow-wrap:anywhere}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.card,.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}.value{font-size:26px;letter-spacing:-.5px;font-variant-numeric:tabular-nums;margin-top:4px}.value small{font-size:14px;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:16px}.chart{width:100%;height:255px;display:block;cursor:crosshair}.legend{display:flex;gap:18px;font-size:12px;color:var(--muted)}.legend span::before{content:"";display:inline-block;width:15px;height:3px;background:var(--mint);margin-right:7px;vertical-align:middle}.legend span:nth-child(2)::before{background:var(--blue)}#tooltip{min-height:20px;color:var(--muted);font-size:12px}#parameters{width:100%;font-variant-numeric:tabular-nums;border-collapse:collapse;font-size:12px}td{padding:6px 2px;border-bottom:1px solid var(--border)}td:not(:first-child){text-align:right}th{text-align:left;color:var(--muted);font-weight:400}th:not(:first-child){text-align:right}.timeline{margin-top:16px}.timeline input{width:100%}.imagegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}.imagecard{padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:12px;min-width:0}.imagecard button{display:block;border:0;padding:0;width:100%;background:#080d13;margin:10px 0;overflow:hidden;border-radius:5px}.imagecard img{width:100%;height:205px;object-fit:contain;display:block}.imagecard .small{font-variant-numeric:tabular-nums}footer{margin:22px 0;color:var(--muted);font-size:12px}dialog{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:12px;width:min(1100px,95vw);max-height:95vh}dialog::backdrop{background:#000b}#zoomimage{display:block;max-width:none;margin:16px auto;image-rendering:auto}#zoomscroll{overflow:auto;max-height:74vh}#empty{padding:60px;text-align:center}.hidden{display:none!important}@media(max-width:950px){main{padding:18px}.layout{grid-template-columns:1fr}.imagegrid{grid-template-columns:repeat(2,1fr)}.cards{grid-template-columns:repeat(2,1fr)}header{align-items:start}.value{font-size:22px}}@media(max-width:560px){.imagegrid{grid-template-columns:1fr}h1{font-size:23px}.toolbar{gap:10px}#experiment{max-width:240px}}
+</style>
+<main>
+<header><div><div class="eyebrow">COMPUTATIONAL IMAGING / BENCHTOP</div><h1>실시간 학습 모니터</h1><div class="muted">RGB CFS · +15 mm · DIV2K</div></div><div><div id="status" class="badge"><span class="dot"></span><span id="statusText">연결 중</span></div><div id="heartbeat" class="muted small" style="text-align:right;margin-top:7px">1초마다 갱신</div></div></header>
+<div class="toolbar"><label>실험<select id="experiment" aria-label="실험"></select></label><label>채널<select id="channel" aria-label="채널"><option value="rgb">Full color · RGB 공동</option><option value="red">Red · 638 nm</option><option value="green">Green · 520 nm</option><option value="blue">Blue · 450 nm</option></select></label><label class="grow">과정<select id="stream" aria-label="과정"></select></label><label class="check"><input id="follow" type="checkbox" checked>진행 중인 과정 / 최신 단계 따라가기</label></div>
+<iframe id="paper-result" title="완료된 복소장 모델의 학습 및 재촬영 결과" class="hidden" style="border:0;width:100%;height:1700px;display:block"></iframe>
+<div id="legacy">
+<div class="toolbar" style="margin-top:0"><label>프리뷰 데이터<select id="previewMode" aria-label="프리뷰 데이터"><option value="process">선택 과정 · CITL / 기본 validation</option><option value="train">Train · 최근 완료 학습 샘플</option><option value="validation">Validation · 고정 검증 샘플</option></select></label><label class="grow">이미지 선택<select id="previewSample" aria-label="프리뷰 이미지"><option value="auto">자동</option></select></label></div>
+<section class="panel" style="margin-bottom:16px"><b id="sampleBadge">데이터 확인 중</b><span id="sampleId" style="margin-left:12px;color:var(--mint)"></span><div id="sampleNote" class="muted small"></div><div id="liveIdentity" class="small" style="margin-top:6px"></div></section>
+<div id="notice">학습 프로세스의 상태를 기다리고 있습니다.</div>
+<div id="empty" class="panel hidden">아직 기록된 학습 단계가 없습니다. 실험을 시작하면 여기에 표시됩니다.</div>
+<div id="content">
+<div id="images" class="imagegrid" style="margin-bottom:18px"></div>
+<section class="panel" style="margin-bottom:16px"><b id="endReason">진행 상태</b><div id="stopPolicy" class="muted small"></div><div id="stopProgress" class="small" style="margin-top:6px"></div></section><section class="panel timeline"><div class="flex spread"><div><b id="selectedLabel">저장된 단계</b><span id="selectionHint" class="muted small" style="margin-left:12px"></span></div><div class="flex"><button id="prev" aria-label="이전 단계">← 이전</button><button id="next" aria-label="다음 단계">다음 →</button><button id="latest">최신으로</button></div></div><input id="timeline" type="range" min="0" max="0" value="0" aria-label="저장된 학습 단계"></section>
+<div class="cards"><div class="card"><div class="muted small" id="stepLabel">현재 epoch</div><div class="value" id="stepValue">—</div></div><div class="card"><div class="muted small" id="lossLabel">Validation MSE</div><div class="value" id="lossValue">—</div><div id="rgbLoss" class="muted small"></div></div><div class="card"><div class="muted small" id="gainLabel">진폭 gain</div><div class="value" id="gainValue">—</div></div><div class="card"><div class="muted small" id="gradientLabel">선택한 단계의 gradient</div><div class="value" id="gradientValue">—</div></div></div>
+<div class="layout"><section class="panel"><div class="flex spread"><h2>오차 변화</h2><label class="check"><input id="log" type="checkbox">로그 축</label></div><canvas id="chart" class="chart" aria-label="학습 오차 곡선. 클릭하면 해당 저장 단계로 이동합니다."></canvas><div class="legend" id="legend"><span>Train</span><span>Validation</span></div><div id="tooltip">곡선 위에 마우스를 올려 수치를 확인하거나 클릭해서 단계를 선택하세요.</div></section><section class="panel"><h2>Learnable parameters</h2><div id="parameterNote" class="muted small" style="margin-bottom:12px">CNN 가중치·bias + log gain</div><table id="parameters"></table><div class="muted small" style="margin-top:14px">거리·파장·픽셀 피치·개구·등록 변환·광원 추정·LUT는 이번 CNN 학습에서 고정입니다.</div></section></div>
+
+
+</div>
+<footer>뷰어 조작은 학습과 SLM 출력에 영향을 주지 않습니다. 영상·파라미터는 해당 단계에서 저장한 값이며, 색 범위는 시간에 따라 고정됩니다. RGB 영상은 선형 진폭을 제곱한 뒤 sRGB로 표시합니다. Train/Validation의 camera 영상은 해당 ID의 저장된 실측 데이터입니다. CITL은 매 step 새로 촬영합니다. Train 자동 선택은 최근 완료 epoch의 실제 샘플이며 순간 배치 추적은 아닙니다. RGB 위상 코드와 오차·multiplier는 진단용 색 표현입니다. 학습 완료 후에도 이전 단계를 탐색할 수 있습니다.</footer>
+</div>
+</main>
+<dialog id="zoom"><div class="flex spread"><b id="zoomtitle"></b><div class="flex"><label class="check">확대 <select id="zoomlevel" aria-label="영상 확대"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label><button id="closezoom">닫기</button></div></div><div id="zoomscroll"><img id="zoomimage" alt="확대한 학습 영상"></div></dialog>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), state={data:null,key:null,index:0,lastRender:'',chart:null,selectedRun:null,runId:null,probe:null,probeStatus:null,catalog:null,catalogAt:0,probeBusy:false};
+const names={rgb:'Full color · RGB 공동',red:'Red · 638 nm',green:'Green · 520 nm',blue:'Blue · 450 nm'};
+const reasons={converged:'수렴 기준 충족',iteration_limit:'반복 상한 도달',epoch_limit:'epoch 상한 도달',validation_plateau:'Validation 개선 정체',user_stop:'사용자 중단',error:'오류',completed:'실행 완료',short_verification:'짧은 검증 완료',evaluation_complete:'실측 비교 완료',verification_checkpoint:'검증 checkpoint 저장'};
+const fmt=(v,d=5)=>Number.isFinite(v)?v.toFixed(d):'—';
+function options(el,items,value){const signature=JSON.stringify(items);if(el.dataset.signature!==signature){el.replaceChildren(...items.map(([v,label])=>{const o=document.createElement('option');o.value=v;o.textContent=label;return o}));el.dataset.signature=signature}if(items.some(i=>i[0]===value))el.value=value;}
+function manual(){ $('follow').checked=false; }
+async function poll(){try{
+ const runs=await fetch('/api/runs',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('서버 오류');return r.json()});
+ if(!runs.length){$('notice').textContent='연결됨 · 아직 실행 기록이 없습니다.';$('statusText').textContent='대기';$('content').classList.add('hidden');$('empty').classList.remove('hidden');return}
+ options($('experiment'),runs.map(r=>[r.name,r.name]),state.selectedRun||runs[0].name);
+ const selected=$('experiment').value;state.selectedRun=selected;
+ const d=await fetch('/api/state?run='+encodeURIComponent(selected),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('상태 읽기 실패');return r.json()});
+ if(state.runId!==d.run_id){state.key=null;state.index=0;state.runId=d.run_id;state.lastRender=''}
+ state.data=d;render();if(!d.result_viewer)loadProbe();
+ }catch(e){$('status').className='badge stale';$('statusText').textContent='연결 끊김';$('heartbeat').textContent='마지막 수신 화면 · 갱신 안 됨';$('notice').textContent='서버에 연결할 수 없습니다. 표시된 데이터는 마지막으로 수신한 기록입니다.'}
+ finally{setTimeout(poll,1000)} }
+function render(){const d=state.data;if(!d)return;
+ $('status').className='badge '+d.status;$('statusText').textContent=({running:'학습 실행 중',completed:'실행 완료',failed:'실행 실패',stopped:'사용자 중단',stale:'응답 지연 / 프로세스 확인'})[d.status]||d.status;
+ $('heartbeat').textContent=d.status==='running'?'프로세스 응답 '+d.heartbeat_age_s.toFixed(1)+'초 전':new Date((d.ended_at||d.updated_at)*1000).toLocaleTimeString('ko-KR');
+ const paper=!!d.result_viewer;$('paper-result').classList.toggle('hidden',!paper);$('legacy').classList.toggle('hidden',paper);for(const label of $('experiment').closest('.toolbar').querySelectorAll('label'))if(!label.contains($('experiment')))label.classList.toggle('hidden',paper);
+ if(paper){if($('paper-result').getAttribute('src')!==d.result_viewer)$('paper-result').src=d.result_viewer;return}
+ const entries=Object.entries(d.streams),active=d.streams[d.active];
+ const empty=entries.length===0;$('content').classList.toggle('hidden',empty);$('empty').classList.toggle('hidden',!empty);
+ if(empty){$('notice').textContent=d.message;return}
+ if($('follow').checked&&active&&$('previewMode').value==='process'){state.key=d.active;$('channel').value=active.channel}
+ const external=$('previewMode').value!=='process';
+ if(external){const cnns=entries.filter(([k,s])=>s.stage==='cnn'&&s.channel==='rgb');if(cnns.length){state.key=cnns.at(-1)[0];$('channel').value='rgb'}}
+ $('stream').disabled=external;$('channel').disabled=external;
+ const available=entries.filter(([k,s])=>s.channel===$('channel').value);
+ if(!available.some(([k])=>k===state.key))state.key=available.at(-1)?.[0];
+ options($('stream'),available.map(([k,s])=>[k,s.label]),state.key);
+ const s=d.streams[state.key];if(!s){$('content').classList.add('hidden');$('empty').classList.remove('hidden');$('notice').textContent='선택한 채널의 기록을 기다리고 있습니다. '+d.message;return}
+ $('notice').textContent='선택 기록: '+(s.mode==='recorded_camera_cnn'?'저장된 실제 카메라 쌍으로 CNN 학습 · 카메라 촬영 없음':s.mode==='live_camera_citl'?'실시간 카메라 촬영 → 실측 loss → 위상 업데이트':s.mode==='simulation'?'ASM / 학습 모델 기반 위상 계산 · 카메라 촬영 없음':s.mode==='recorded_camera_evaluation'?'ASM / CNN / CNN + CITL · 실제 RGB 카메라 비교':s.mode)+'  |  현재 작업: '+d.message;
+ $('endReason').textContent=s.stop_reason?'선택 과정 종료 이유 · '+(reasons[s.stop_reason]||s.stop_reason):'진행 중 · 종료 기준 감시';
+ if(s.termination?.citl_termination){const t=s.termination.citl_termination;$('endReason').textContent+=' · CITL '+(reasons[t.reason]||t.reason)+' ('+t.steps+'/'+t.maximum+'회)'}
+ const policy=s.stopping_policy;
+ $('stopPolicy').textContent=policy?(cnnPolicy(policy)):'종료 정보: '+(s.stop_reason?(reasons[s.stop_reason]||s.stop_reason):'기록 중');
+ const snapshots=s.snapshots;if($('follow').checked)state.index=snapshots.length-1;state.index=Math.max(0,Math.min(state.index,snapshots.length-1));
+ $('timeline').max=Math.max(0,snapshots.length-1);$('timeline').value=state.index;$('timeline').disabled=!snapshots.length;
+ const snap=snapshots[state.index],latest=s.history.at(-1)||{};let m=snap?.metrics||latest;const cnn=external||s.stage==='cnn';
+ if(external&&state.probe?.status==='ready')m=state.probe.metrics;
+ $('rgbLoss').textContent=(cnn?m.val_mse_rgb:m.amplitude_mse_rgb)?.map((v,i)=>['R','G','B'][i]+' '+fmt(v,5)).join(' · ')||'';
+ $('stepLabel').textContent=(cnn?'진행 epoch':'진행 step')+' · '+names[s.channel];$('stepValue').innerHTML=String(latest.step??'—')+' <small>/ '+s.total+'</small>';
+ $('lossLabel').textContent=cnn?'선택 epoch · Validation MSE':'선택 step · Amplitude MSE';$('lossValue').textContent=fmt(cnn?m.val_mse:m.amplitude_mse);
+ const convergence=latest.convergence;
+ $('stopProgress').textContent=cnn?'누적 epoch '+(latest.global_epoch??latest.epoch)+' · Adam 상태 '+(s.optimizer_restored?'복원됨':'최초 시작')+' · learning rate '+(latest.learning_rate??'—'):
+ convergence?'수렴 판정: 안정 구간 '+convergence.stable_windows+'/'+(policy?.patience??'—')+' · 구간 개선량 '+convergence.improvement.toExponential(3)+' / 허용 변화 '+convergence.tolerance.toExponential(3):
+ policy?.minimum!==undefined?'수렴 판정은 최소 '+policy.minimum+'회 이후 시작합니다.':'종료 이유와 비교 수치는 해당 과정의 실제 기록입니다.';
+ $('gainLabel').textContent=cnn?'선택 epoch · 평균 진폭 gain':'고정 white scale';$('gainValue').textContent=fmt(cnn?m.amplitude_gain:m.scale,4);
+ $('gradientValue').textContent=Number.isFinite(cnn?m.gradient_l2_mean:m.phase_gradient_rms)?(cnn?m.gradient_l2_mean:m.phase_gradient_rms).toExponential(3):'—';
+ $('selectedLabel').textContent=snap?(cnn?'Epoch ':'Step ')+snap.step+' 영상 / 파라미터':'첫 영상 기록 대기';$('selectionHint').textContent=d.status==='running'?($('follow').checked?'자동 추적 중':'이전 기록 탐색 중 · 학습은 계속 진행'):'저장된 기록 탐색 중';
+ $('prev').disabled=state.index<=0;$('next').disabled=state.index>=snapshots.length-1;
+ $('legend').replaceChildren(...(cnn?['Train','Validation']:['Amplitude MSE']).map(t=>{const e=document.createElement('span');e.textContent=t;return e}));
+ $('parameterNote').textContent=cnn?'각 tensor의 L2 norm · Δ는 epoch 0 대비 변화':'이 단계에서는 SLM 위상만 최적화합니다. CNN 가중치는 고정입니다.';
+ const table=$('parameters');table.replaceChildren();if(cnn&&m.parameter_l2){const tr=document.createElement('tr');for(const t of ['Tensor','L2 norm','Δ vs 0']){const th=document.createElement('th');th.textContent=t;tr.append(th)}table.append(tr);const first=s.history[0]?.parameter_l2||{};for(const [name,norm] of Object.entries(m.parameter_l2)){const row=document.createElement('tr');for(const text of [name,fmt(norm,4),fmt(norm-(first[name]||0),4)]){const td=document.createElement('td');td.textContent=text;row.append(td)}table.append(row)}}
+ if(s.stage==='evaluation'){
+  const scores=m.comparison_mse||{};
+  $('gainLabel').textContent='ASM 대비 MSE 감소';$('gainValue').textContent=Number.isFinite(scores.asm)?(100*(1-scores.cnn_citl/scores.asm)).toFixed(1)+'%':'—';
+  $('gradientLabel').textContent='CNN 대비 MSE 감소';$('gradientValue').textContent=Number.isFinite(scores.cnn)?(100*(1-scores.cnn_citl/scores.cnn)).toFixed(1)+'%':'—';
+  $('parameterNote').textContent='저장된 위상별 실제 RGB 카메라 비교 · 모델 가중치 고정';
+ }else{$('gradientLabel').textContent='선택한 단계의 gradient'}
+ if(!cnn&&Array.isArray(m.phase_delta_rms_rgb)){
+  $('parameterNote').textContent='SLM 학습 변수 · 초기 위상 대비 wrapped RMS 변화 [rad]';
+  const row=document.createElement('tr');for(const t of ['색','Δ phase RMS','Gradient RMS']){const th=document.createElement('th');th.textContent=t;row.append(th)}table.append(row);
+  ['R','G','B'].forEach((ch,i)=>{const row=document.createElement('tr');for(const value of [ch,fmt(m.phase_delta_rms_rgb[i],5),Number.isFinite(m.phase_gradient_rms_rgb?.[i])?m.phase_gradient_rms_rgb[i].toExponential(3):'—']){const td=document.createElement('td');td.textContent=value;row.append(td)}table.append(row)});
+ }
+ renderIdentity(s,active,external);
+ const shown=external?(state.probe?.status==='ready'?state.probe.images:[]):(snap?.images||[]);
+ const identity=d.run_id+state.key+state.index+$('previewMode').value+(shown[0]?.file||'');
+ if(identity!==state.lastRender){state.lastRender=identity;$('images').replaceChildren();for(const im of shown){const card=document.createElement('div');card.className='imagecard';const title=document.createElement('b');title.textContent=im.label;const button=document.createElement('button');button.setAttribute('aria-label',im.label+' 확대');const img=document.createElement('img');img.alt=im.label;img.src='/data/'+encodeURIComponent(d.experiment)+'/'+im.file;button.append(img);button.onclick=()=>{ $('zoomtitle').textContent=im.label+' · '+$('selectedLabel').textContent;$('zoomimage').src=img.src;$('zoomlevel').value='1';zoomsize();$('zoom').showModal()};const label=document.createElement('div');label.className='muted small';label.textContent='범위 '+im.vmin.toPrecision(3)+' … '+im.vmax.toPrecision(3)+' · '+im.cmap+' · 범위 밖 '+(100*im.clipped_fraction).toFixed(2)+'%';card.append(title,button,label);$('images').append(card)}}
+ if(external){$('timeline').disabled=true;$('prev').disabled=true;$('next').disabled=true;if(state.probe?.status==='ready'){$('selectedLabel').textContent='프리뷰 기록 · epoch '+state.probe.epoch;$('lossLabel').textContent='기록 epoch · 전체 Validation MSE'}}
+ draw(external&&s.stage!=='cnn'?{...s,stage:'cnn',history:[]}:s,external&&state.probe?.status==='ready'?state.probe.epoch:snap?.step);
+}
+function cnnPolicy(p){return p.max_epochs!==undefined?'최대 '+p.max_epochs+' epoch · 최소 '+p.min_epochs+' epoch · validation patience '+p.patience:
+ '최대 '+p.maximum+'회 · 최소 '+p.minimum+'회 · 구간 '+p.window+'회 × '+p.patience+'회 안정 · 상대 '+(100*p.relative).toFixed(2)+'% / 절대 '+p.absolute;}
+function draw(s,selected){const canvas=$('chart'),r=canvas.getBoundingClientRect(),ratio=devicePixelRatio||1;canvas.width=r.width*ratio;canvas.height=r.height*ratio;const ctx=canvas.getContext('2d');ctx.scale(ratio,ratio);const W=r.width,H=r.height,L=64,T=15,B=28,R=12;const series=s.stage==='cnn'?['train_mse','val_mse']:['amplitude_mse'];const log=$('log').checked;const f=v=>log?Math.log10(Math.max(v,1e-12)):v;const values=s.history.flatMap(m=>series.map(k=>m[k])).filter(Number.isFinite);if(!values.length){state.chart=null;return}let lo=Math.min(...values.map(f)),hi=Math.max(...values.map(f));const pad=Math.max((hi-lo)*.1,Math.abs(hi)*.02,1e-7);lo-=pad;hi+=pad;const xmax=Math.max(s.total,1);const X=x=>L+x/xmax*(W-L-R),Y=y=>H-B-(f(y)-lo)/(hi-lo)*(H-T-B);ctx.font='11px system-ui';ctx.textAlign='right';for(let i=0;i<5;i++){const v=lo+(hi-lo)*i/4,y=H-B-i/4*(H-T-B);ctx.strokeStyle='#283747';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();ctx.fillStyle='#9eafc1';ctx.fillText((log?10**v:v).toPrecision(3),L-8,y+4)}ctx.textAlign='center';for(let i=0;i<6;i++){const x=xmax*i/5;ctx.fillText(Math.round(x),X(x),H-6)}if(selected!==undefined){ctx.strokeStyle='#e9f0f766';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(X(selected),T);ctx.lineTo(X(selected),H-B);ctx.stroke();ctx.setLineDash([])}series.forEach((key,i)=>{ctx.strokeStyle=['#6ce3bd','#75adff'][i];ctx.lineWidth=2;ctx.beginPath();let started=false;for(const m of s.history){if(!Number.isFinite(m[key]))continue;const x=X(m.step),y=Y(m[key]);if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y)}ctx.stroke()});state.chart={L,W,R,xmax,s,series}}
+function nearest(event){const c=state.chart;if(!c)return;const x=event.clientX-$('chart').getBoundingClientRect().left;const step=Math.max(0,Math.min(c.xmax,(x-c.L)/(c.W-c.L-c.R)*c.xmax));return c.s.history.reduce((a,b)=>Math.abs(b.step-step)<Math.abs(a.step-step)?b:a)}
+$('chart').onmousemove=e=>{const m=nearest(e);if(m)$('tooltip').textContent='Step '+m.step+'  ·  '+state.chart.series.map(k=>k+': '+fmt(m[k],7)).join('  ·  ')};
+$('chart').onclick=e=>{const m=nearest(e),s=state.chart?.s;if(m&&s.snapshots.length){manual();state.index=s.snapshots.reduce((a,b,i)=>Math.abs(b.step-m.step)<Math.abs(s.snapshots[a].step-m.step)?i:a,0);render()}};
+$('experiment').onchange=()=>{state.probe=null;state.catalog=null;state.catalogAt=0;state.selectedRun=$('experiment').value;state.data=null;state.key=null;state.runId=null;state.lastRender='';$('notice').textContent='실험을 불러오는 중입니다…'};
+$('channel').onchange=()=>{manual();state.key=null;state.index=999999;render()};$('stream').onchange=()=>{manual();state.key=$('stream').value;state.index=999999;render()};$('follow').onchange=render;$('log').onchange=render;
+$('timeline').oninput=()=>{manual();state.index=+$('timeline').value;render()};$('prev').onclick=()=>{manual();state.index--;render()};$('next').onclick=()=>{manual();state.index++;render()};$('latest').onclick=()=>{$('follow').checked=true;render()};window.onresize=()=>render();
+function zoomsize(){$('zoomimage').style.width=(640*+$('zoomlevel').value)+'px'}$('zoomlevel').onchange=zoomsize;$('closezoom').onclick=()=>$('zoom').close();
+function resetProbe(){state.probe=null;state.probeStatus=null;state.lastRender='';render();loadProbe();}
+$('previewMode').onchange=()=>{$('previewSample').dataset.signature='';$('previewSample').value='auto';resetProbe()};
+$('previewSample').onchange=resetProbe;
+function imageId(path){return (path||'—').split(/[\\/]/).at(-1)}
+function streamSample(s){const match=(s?.label||'').match(/DIV2K_(?:train|valid)_HR[\\/]\d+\.png/);return match?match[0]:null}
+function renderIdentity(s,active,external){
+ const current=streamSample(active);const roles={cnn:'CNN 공동 학습',composite_citl:'CITL 실제 촬영',generate:'SLM 위상 계산',evaluation:'실측 비교'};
+ const activity=state.data?.status==='running'?'현재 진행: ':state.data?.status==='failed'?'오류로 중단된 작업: ':'마지막 작업: ';
+ $('liveIdentity').textContent=activity+(roles[active?.stage]||active?.stage||'—')+(current?' · ID '+imageId(current):'');
+ $('previewSample').disabled=$('previewMode').value==='process';
+ if(external){const p=state.probe;const split=$('previewMode').value;
+  $('sampleBadge').textContent=split==='train'?(p?.identity==='selected_recorded_sample'?'TRAIN · 선택한 학습 샘플':p?.identity==='last_retained_trained_sample'?'TRAIN · 최근 epoch 잔존 샘플':'TRAIN · 최근 완료 학습 샘플'):'VALIDATION · 고정 / 선택 검증 샘플';
+  $('sampleId').textContent=p?.status==='ready'?imageId(p.target_id):'프리뷰 준비 중';
+  $('sampleNote').textContent=p?.status==='ready'?p.target_id+' · cycle '+p.cycle+' / epoch '+p.epoch+' · '+new Date(p.sample_time*1000).toLocaleTimeString('ko-KR')+' 기록 · '+p.note+(state.probeStatus?.status==='building'?' · 새 epoch 프리뷰 준비 중':''):(state.probeStatus?.message||'프리뷰 요청 중 · 학습은 계속 진행');
+  $('selectionHint').textContent='저장된 실제 샘플 · 곡선과 파라미터는 CNN 학습 기록';
+ }else{const id=streamSample(s);const val=state.catalog?.samples?.find(r=>r.split==='validation');
+  $('sampleBadge').textContent=s.stage==='cnn'?'VALIDATION · 고정 프리뷰':s.stage==='composite_citl'?'CITL · 실제 카메라 기록':s.stage==='evaluation'?'CITL / ASM / CNN · 실측 비교':'SLM 패턴 생성';
+  $('sampleId').textContent=imageId(id||(s.stage==='cnn'?val?.target_id:null));
+  $('sampleNote').textContent=s.stage==='cnn'?'저장된 첫 validation 샘플을 동일하게 비교합니다. Train 프리뷰로 전환할 수 있습니다.':id||'이전 기록은 ID 정보가 없을 수 있습니다.';
+ }
+}
+async function loadProbe(){if(state.probeBusy||!state.data)return;
+ const run=state.selectedRun,mode=$('previewMode').value,selected=$('previewSample').value||'auto';
+ state.probeBusy=true;
+ try{
+  if(!state.catalog||Date.now()-state.catalogAt>10000){const c=await fetch('/api/samples?run='+encodeURIComponent(run),{cache:'no-store'}).then(r=>r.ok?r.json():null);if(run!==state.selectedRun)return;state.catalog=c;state.catalogAt=Date.now()}
+  if(mode==='process'){render();return}
+  const available=(state.catalog?.samples||[]).filter(r=>r.split===mode);
+  options($('previewSample'),[['auto',mode==='train'?'자동 · 최근 완료한 train 샘플':'고정 · 첫 validation 샘플'],...available.map(r=>[String(r.serial),imageId(r.target_id)+' · #'+r.serial])],selected);
+  if(!state.catalog?.available){state.probeStatus={status:'unavailable',message:'공동 RGB 학습 기록이 없는 실험입니다.'};render();return}
+  const response=await fetch('/api/preview?run='+encodeURIComponent(run)+'&split='+mode+'&sample='+encodeURIComponent(selected),{cache:'no-store'}).then(r=>r.json());
+  if(run!==state.selectedRun||mode!==$('previewMode').value||selected!==$('previewSample').value)return;
+  if(response.error)throw Error(response.error);state.probeStatus=response;if(response.status==='ready')state.probe=response;render();
+ }catch(e){state.probeStatus={status:'unavailable',message:'샘플 프리뷰 갱신 대기 · '+e.message};render()}
+ finally{state.probeBusy=false}
+}
+window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===$('paper-result').contentWindow&&Number.isFinite(e.data?.paperHeight))$('paper-result').style.height=Math.min(16000,Math.max(600,e.data.paperHeight+24))+'px'});
+poll();
+</script></html>

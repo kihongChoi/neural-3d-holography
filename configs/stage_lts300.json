@@ -1,0 +1,18 @@
+{
+  "stage_model": "LTS300/M",
+  "serial": "45897069",
+  "collision_boundary_mm": 125,
+  "runtime_guard_mm": 124,
+  "default_measurement_interval_mm": [
+    99,
+    103
+  ],
+  "maximum_velocity_mm_s": 0.5,
+  "acceleration_mm_s2": 1.0,
+  "backlash_compensation_mm": 0.05,
+  "nominal_slm_conjugate_coordinate_mm": 101.04,
+  "provisional_center_compromise_mm": 100.78,
+  "exact_slm_plane_coordinate_mm": null,
+  "calibration_result": "results/slm_plane_20261102_clean/summary.json",
+  "notes": "Use benchtop.stage.Stage; it reapplies safety limits after loading Kinesis settings. The existing 15 mm training profiles are historical and are not updated by this new stage measurement. Stage-coordinate/propagation-distance sign is not calibrated."
+}

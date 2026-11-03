@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
+<title>Neural 3D Holography — 논문과 15 mm RGB 실험 학습자료</title>
+<style>__STYLE__</style>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{ready(){MathJax.startup.defaultReady();MathJax.startup.promise.then(()=>{let e=document.getElementById('math-status');e.textContent='수식 렌더링 완료 · 그래프와 촬영 이미지는 이 파일에 포함되어 있습니다.';e.classList.remove('failed');}).catch(()=>mathFailed());}}};
+function mathFailed(){let e=document.getElementById('math-status');if(e){e.textContent='수식 렌더러를 불러오지 못했습니다. LaTeX 원문은 남아 있습니다. 인터넷이 연결된 일반 브라우저에서 다시 열어 주세요.';e.classList.add('failed');}}
+</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" onerror="mathFailed()"></script></head>
+<body><header class="mast" id="top"><div class="wrap">
+<div class="eyebrow">PAPER × EXPERIMENT · UPDATED 2026.10.25</div>
+<h1>빛을 예측하는 모델과<br>빛을 원하는 곳으로 보내는 미분</h1>
+<p class="subtitle"><i>Neural 3D Holography</i>의 핵심 원리와<br>2026년 10월 22–25일, 15 mm 단일 평면 RGB 실험 해설</p>
+<p class="meta">대상: 광학·컴퓨터 비전 연구자 · 선수 지식: 복소수, 푸리에 변환, 미분의 기본 개념 · 일곱 학습 단위와 선택형 심화 설명</p>
+<div id="math-status" class="math-status" role="status">수식 렌더러를 불러오는 중입니다. 수식의 조판에만 인터넷 연결이 필요합니다.</div>
+</div></header>
+<nav aria-label="학습 단원"><div class="wrap"><a href="#s1">01 빛과 위상</a><a href="#s2">02 학습과 최적화</a><a href="#s3">03 논문의 3D 모델</a><a href="#s4">04 실험 절차</a><a href="#s5">05 실제 결과</a><a href="#s6">06 원인 진단</a><a href="#s7">07 복소장 모델 결과</a><a href="#refs">출처·부록</a></div></nav>
+<main class="wrap"><noscript><p class="noscript">JavaScript가 꺼져 있습니다. 본문은 읽을 수 있지만 데이터 표·영상 선택·수치 그래프에는 JavaScript가 필요합니다.</p></noscript>
+<div class="intro">
+<p>읽고 나면 세 질문에 답할 수 있습니다. <strong>왜 영상 예측이 좋아져도 홀로그램은 나빠질 수 있는가? 카메라 피드백은 무엇을 실제 값으로 바꾸는가? 이번 결과에서 논문의 어떤 부분이 확인됐고, 어떤 부분은 아직 수행하지 않았는가?</strong></p>
+<p class="note">먼저 용어를 정리하면, <b>ASM</b>은 공간 주파수별로 빛의 전파를 계산하는 각 스펙트럼법, <b>CNN</b>은 주변 공간 정보를 이용하는 합성곱 신경망, <b>CITL</b>은 카메라 실측을 반복해 위상을 수정하는 방법입니다. <b>RGB</b>는 빨강·초록·파랑 세 채널이고, <b>MSE</b>는 평균제곱오차입니다. <b>SGD-ASM</b>은 ASM을 통해 위상을 반복 최적화하는 방법, <b>DPAC</b>은 두 위상을 교대로 배치해 진폭을 부호화하는 방법입니다. <b>SSIM</b>은 국소 밝기·대비·구조의 유사도를 평가합니다.</p>
+<div class="callout"><strong>10월 25일 완료된 실험의 핵심 결론</strong><p>논문의 복소장 보정 구조를 따른 <b>CNNpropCNN(신경망 → 전파 → 신경망)</b>은 새 영상 8장 모두에서 SGD-ASM보다 실제 출력의 고정 진폭 MSE가 낮았고, 평균 감소율은 <b>38.9%</b>였습니다. 사후 밝기 배율 보정 후 감소율은 <b>67.4%</b>입니다. 두 SGD는 같은 초기 위상에서 1,000회 최적화했고, 추가 CITL은 수행하지 않았습니다. <a class="cite" href="#s7">[새 결과 · 07 단원]</a></p><p><b>제한:</b> 직접 위상을 부호화하는 DPAC보다 평균 SSIM은 낮았으며, 영상 0868의 고정 밝기 MSE도 더 컸습니다. 현재 장비의 15 mm 단일 평면 결과로, 3D 깊이 일반화 재현은 아닙니다.</p></div>
+<div class="key"><article><span class="label">새 실험 · 고정 백색 진폭 MSE</span><strong>−38.9%</strong><small>SGD-ASM 대비 · 새 영상 8장<br>각 방법 3회 재촬영 · 8/8장 개선</small></article><article><span class="label">새 실험 · 배율 보정 진폭 MSE</span><strong>−67.4%</strong><small>SGD-ASM 대비 · 채널별 사후 배율<br>실제 광량·색 균형과 구분</small></article><article><span class="label">재현 범위</span><strong>15 mm 한 평면</strong><small>논문 크기 복소장 CNN, 학습·실측 평가<br>다중 깊이·RGBD·ADMM은 미실험</small></article></div>
+<p class="note">04–06 단원은 10월 22–23일의 소형 진폭 보정 모델과 CITL 진단 기록입니다. 당시 CNN만으로 생성한 출력의 평균 MSE는 ASM보다 4.0% 컸고, 추가 CITL의 최적 위상은 49.6% 낮았습니다. 구조·데이터·평가 영상·반복 수가 바뀐 새 실험과 직접적인 구조 절제 비교로 해석하지 않습니다.</p>
+<p class="note">MSE는 평균제곱오차입니다. 이 문서의 실험 수치는 별도 표시가 없으면 고정된 기준 백색으로 정규화한 <b>진폭</b>의 MSE이며 단위는 무차원입니다. 평균 정의와 반복 수는 각 표·그래프 가까이에 표시합니다. 좁은 화면에서는 긴 수식·표·그래프를 좌우로 움직여 볼 수 있습니다.</p>
+</div>
+
+<section class="chapter" id="s1"><div class="num">01 · 물리적 출발점</div><h2>위상만 바꾸는데, 왜 밝기 무늬가 만들어질까?</h2><p class="lead">전파하는 동안 여러 위치에서 온 복소장이 합쳐집니다. 위상은 그 합이 서로 강화될지 상쇄될지를 결정합니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명</div><h3>SLM은 복소장의 위상을 조절한다</h3>
+<p>공간광변조기(SLM)는 픽셀마다 위상 지연을 조절합니다. 입사 진폭이 \(A_0\), 위상이 \(\phi\)인 복소장은 전파 연산자 \(\mathcal P_z\)를 지나 카메라 위치의 복소장이 됩니다. 카메라가 직접 기록하는 것은 위상이 아니라 광강도입니다. <a class="cite" href="#paper">[논문 §3.1]</a></p>
+<div class="equation">\[u_0(x,y)=A_0(x,y)e^{i\phi(x,y)},\qquad I_z=|\mathcal P_z[u_0]|^2.\]</div>
+<p class="symbols">\(x,y\): 횡방향 좌표(m), \(\phi\): 위상(rad), \(z\): 전파 거리(m), \(i\): 허수 단위. 진폭 단위의 제곱이 광강도 단위에 대응합니다. 이번 실험의 진폭은 기준 백색의 진폭을 1로 정규화합니다.</p>
+<p><b>공간 주파수 성분마다 위상 지연을 계산하는 방법이 각 스펙트럼법(ASM)입니다.</b> 균질한 매질의 스칼라 파동을 가정합니다.</p>
+<div class="equation">\[\mathcal P_z[u]=\mathcal F^{-1}\!\left\{\mathcal F[u]\,e^{\,i2\pi z\sqrt{\lambda^{-2}-f_x^2-f_y^2}}\right\}.\]</div>
+<p class="symbols">\(\mathcal F\): 2차원 푸리에 변환, \(f_x,f_y\): 공간 주파수(m\(^{-1}\)), \(\lambda\): 파장(m). 식은 \(f_x^2+f_y^2\leq\lambda^{-2}\)의 전파 성분을 표시합니다. 구현에서는 샘플링 한계와 광학 개구도 적용합니다.</p>
+<details><summary>거리 0과 유한 개구에서는 어떻게 달라질까?</summary><p>개구나 대역 제한이 없는 이상적 연산자에서 \(z=0\)이면 전달함수는 1이므로 \(u_z=u_0\)입니다. 진폭이 균일한 위상 전용 SLM의 바로 그 평면에서는 위상만 바꿔 밝기를 마음대로 만들 수 없습니다.</p><p>유한 개구 \(P\)를 넣으면 \(z=0\)에서도 \(\mathcal F^{-1}\{P\,\mathcal F[u_0]\}\)가 되어 항등 연산이 아닙니다. 실제 실험의 4f 릴레이와 필터를 이상적 자유 공간의 극한과 혼동하면 안 됩니다.</p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>도착 시각을 조절해 파도를 합친다</h3>
+<p>여러 파도가 한 지점에 모인다고 생각해 보세요. 마루가 함께 도착하면 높아지고, 마루와 골이 만나면 낮아집니다. <b>각 픽셀의 위상은 도착할 때의 파동 진행 단계</b>, 전파는 픽셀의 영향이 여러 지점으로 퍼지는 과정에 대응합니다.</p>
+<p>SLM에서 밝은 점을 직접 그리는 것이 아니라, <b>다른 곳에서 합쳐질 파동의 타이밍을 설계</b>합니다. 중간의 렌즈·조명·픽셀 응답이 조금 달라도 목표 위치에서의 합은 바뀝니다.</p><p>ASM은 이상적인 물길 지도입니다. 실제 물길의 작은 굴곡을 빠뜨리면 시뮬레이션에서 잘 모인 파도가 실제 위치에서는 어긋납니다.</p>
+<p class="note">비유의 경계: 광강도는 파도 높이의 단순 합이 아니라 복소장 합의 절댓값 제곱입니다. 서로 다른 RGB 파장 사이의 간섭을 아래 계산에 넣지 않습니다.</p>
+<details><summary>카메라 밝기를 왜 제곱근으로 바꿀까?</summary><p>카메라는 선형 광강도 \(I\)를 측정하지만 이번 손실은 진폭 \(A=\sqrt I\)에서 정의합니다. 사진의 sRGB 값에는 표시용 비선형 변환이 있으므로, 먼저 선형 광강도로 되돌린 뒤 제곱근을 취합니다. sRGB 값 자체를 진폭으로 쓰면 목표가 달라집니다.</p></details>
+</aside></div>
+<div class="wide"><h3>직접 계산하기 · 같은 파장의 두 파동은 어떻게 합쳐지는가?</h3>
+<p class="compact">한 관측점에서 첫 파동의 진폭을 1로 고정하고, 둘째 파동의 진폭 비와 상대 위상을 바꿉니다. 장비 재현이 아닌 <b>두 파동 간섭식의 교육용 계산</b>입니다.</p>
+<div class="equation">\[\frac{I}{I_1}=1+r^2+2r\cos\delta.\]</div>
+<p class="symbols">\(I_1\): 첫 파동만 있을 때의 광강도, \(r=A_2/A_1\): 진폭 비(무차원), \(\delta\): 상대 위상(rad). 같은 파장·편광이며 결맞음이 있다고 가정합니다.</p>
+<div class="controls"><div class="control"><label for="phase">상대 위상 <output id="phase-value"></output></label><input id="phase" type="range" min="0" max="6.283185307179586" step="0.001" value="1.571"></div><div class="control"><label for="ratio">진폭 비 <output id="ratio-value"></output></label><input id="ratio" type="range" min="0" max="1" step=".01" value="1"></div><button id="construct">같은 위상</button><button id="destruct">반대 위상</button><button id="onewave">둘째 파동 없음</button><button id="wave-reset">초기화</button></div>
+<div class="chart-wrap" tabindex="0" aria-label="가로로 탐색할 수 있는 그래프"><svg id="wave-chart" class="chart" viewBox="0 0 900 270" role="img" aria-label="상대 위상에 따른 광강도 그래프"></svg></div><p class="readout" id="wave-readout" aria-live="polite"></p>
+<p class="note">진폭 비가 1이고 상대 위상이 π rad이면 완전 상쇄로 광강도가 0입니다. 진폭 비가 0이면 위상을 움직여도 광강도가 변하지 않습니다. 두 파동의 총 에너지가 없어진다는 뜻은 아니며, 공간 전체에서는 밝고 어두운 위치로 재분포합니다.</p></div></section>
+
+<section class="chapter" id="s2"><div class="num">02 · 무엇을 최적화하는가</div><h2>모델 학습, 위상 생성, CITL은 서로 다른 문제다</h2><p class="lead">같은 역전파를 쓰더라도 바꾸는 변수와 비교 대상이 다릅니다. 이 구분이 실험 결과를 읽는 기준입니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명</div><h3>모델은 장비를 배우고, 위상은 타깃을 만든다</h3>
+<p><b>전방 모델 학습</b>에서는 표시했던 위상과 그때 촬영한 영상이 고정되어 있고, 모델 가중치 \(\theta\)를 바꿉니다. <b>위상 생성</b>에서는 학습된 모델을 고정하고, 새로운 목표 진폭 \(A_t\)에 맞춰 SLM 위상 \(\phi\)를 바꿉니다. <a class="cite" href="#paper">[논문 §3.3–3.4]</a></p>
+<div class="equation">\[\begin{aligned}\theta^*&=\arg\min_\theta\sum_n\ell(\widehat A_\theta(\phi_n),A_{\mathrm{cam},n}),\\
+\phi^*&=\arg\min_\phi\ell(\widehat A_{\theta^*}(\phi),A_t).\end{aligned}\]</div>
+<p class="symbols">\(\widehat A_\theta\): 모델의 진폭 예측, \(A_{\mathrm{cam},n}\): 위상 \(\phi_n\)의 촬영 진폭, \(n\): 학습 표본, \(\ell\): 오차 함수. 원 논문과 10월 24–25일 복소장 모델 학습은 L1 손실(절대오차)을, 10월 22–23일 소형 모델 학습은 진폭 MSE를 사용합니다.</p>
+<p><b>Camera-in-the-loop(CITL)</b>는 위상 생성 중 카메라를 반복해서 읽는 방법입니다. 오차는 실측으로 계산하지만, 카메라를 직접 미분할 수 없어 모델 미분을 사용합니다. <a class="cite" href="#paper">[논문 §3.2, §4.5]</a> <a class="cite" href="#e-code">[구현]</a></p>
+<div class="equation">\[\begin{aligned}\widetilde A&=\widehat A_\theta+\operatorname{stopgrad}(A_{\mathrm{cam}}-\widehat A_\theta),\\
+\nabla_\phi L&\approx\frac{2}{N}J_\theta^\mathsf T(A_{\mathrm{cam}}-A_t).\end{aligned}\]</div>
+<p class="symbols">\(\operatorname{stopgrad}\): 값은 통과시키고 미분은 0으로 처리. \(J_\theta=\partial\widehat A_\theta/\partial\phi\): 모델의 <button class="tip-btn" data-tip="SLM 위상을 조금 바꿨을 때 모든 출력 진폭이 얼마나 변하는지 담은 미분 행렬입니다. 구현은 이 거대한 행렬을 저장하지 않고 역전파로 필요한 곱만 계산합니다." aria-expanded="false">야코비안</button>. \(N\): RGB를 포함한 비교 원소 수. 식은 평균제곱 진폭 손실과 고정 정규화를 가정합니다.</p>
+<details><summary>어떤 값이 학습 중 바뀌고, 어떤 값은 고정되는가?</summary><div class="table-wrap"><table><thead><tr><th>과정</th><th>갱신</th><th>고정된 기준</th></tr></thead><tbody><tr><td>모델 학습</td><td>CNN 가중치·진폭 이득</td><td>기존 위상–촬영 쌍</td></tr><tr><td>모델 기반 생성</td><td>SLM 위상</td><td>모델·목표 영상</td></tr><tr><td>CITL</td><td>SLM 위상</td><td>모델·목표·보정 조건</td></tr></tbody></table></div><p>CITL의 추가 개선은 CNN을 더 학습한 효과와 다릅니다. 해당 타깃의 실측 정보를 더 사용한 위상 최적화입니다.</p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>지도 보정, 경로 계획, 실제 길에서 수정하기</h3>
+<p>모델 학습은 여러 지점을 방문해 <b>지도를 고치는 과정</b>, 위상 생성은 완성된 지도로 <b>새 목적지까지 경로를 계획하는 과정</b>에 대응합니다.</p><p>CITL에서는 현재 위치를 실제로 확인합니다. 하지만 다음에 어느 쪽으로 움직일지는 여전히 지도의 국소 경사에 의존합니다. <b>현재 위치를 정확히 알아도 방향 안내가 틀리면 목적지에서 멀어질 수 있습니다.</b></p>
+<p>영상 예측 정확도는 “위치 표기가 맞는가?”에, 미분 정확도는 “작게 움직였을 때 변화 방향이 맞는가?”에 대응합니다.</p><p class="note">비유의 경계: 실제 변수는 수백만 픽셀의 위상이며, 하나의 방향 변화가 모든 영상 픽셀을 함께 바꿉니다.</p>
+<details><summary>값이 완전히 맞아도 기울기가 반대일 수 있다</summary><p>교육용 함수 \(f(q)=q\)와 \(\widehat f(q)=1-q\)는 \(q=0.5\)에서 같은 값이지만 미분은 반대입니다. 목표가 0이면 실제 제곱오차를 줄이려면 \(q\)를 내려야 하지만, 모델의 기울기는 올리도록 지시합니다.</p><div class="equation">\[f(0.5)=\widehat f(0.5)=0.5,\qquad f'=1,\quad\widehat f'=-1.\]</div><p class="symbols">\(q\): 무차원 교육용 변수. 장비 데이터의 적합 결과가 아니라 “값 일치가 미분 일치를 보장하지 않는다”는 수학적 반례입니다.</p></details>
+</aside></div></section>
+
+<section class="chapter" id="s3"><div class="num">03 · 원 논문의 핵심 기여</div><h2>복소장 보정과 깊이별 감독이 3D 확장을 가능하게 한다</h2><p class="lead">SLM 평면과 목표 평면의 복소장을 보정하고, 물리적 전파로 여러 깊이를 연결하는 구조가 핵심입니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명</div><h3>CNNpropCNN: 신경망 → 전파 → 신경망</h3>
+<p>합성곱 신경망(CNN)은 주변 공간 정보를 이용해 입력을 변환합니다. 논문의 첫 CNN \(C_s\)는 SLM 복소장의 실수·허수 두 채널을 받아 보정된 복소장을 만듭니다. ASM으로 각 깊이에 전파한 뒤, 공유하는 두 번째 CNN \(C_t\)가 복소장을 다시 보정합니다. <a class="cite" href="#paper">[논문 식 (3), Fig. 2]</a></p>
+<div class="equation">\[\widehat u_j=C_t\!\left(\mathcal P_{z_j}[C_s(e^{i\phi})]\right),\quad\widehat A_j=|\widehat u_j|.\]</div>
+<p class="symbols">\(j\): 목표 평면 번호, \(z_j\): 거리(m), \(C_s,C_t\): 학습 가능한 복소장 변환. 신경망 자체는 실수 연산으로 두 채널을 처리합니다. \(C_t\)의 가중치는 깊이별로 공유합니다.</p>
+<p><b>RGBD 감독</b>은 색 영상(RGB)과 깊이 지도(D)를 사용해 픽셀을 가장 가까운 목표 평면 하나에 배정합니다. 그 평면에서 해당 깊이에 속한 부분만 선명하게 맞춥니다. 전체 초점 스택을 동시에 강제하는 부담을 줄이는 방법입니다. <a class="cite" href="#paper">[논문 §3.4]</a></p>
+<div class="equation">\[L_A=\sum_j\|m_j\odot(s|\widehat u_j|-A_{t,j})\|_2^2.\]</div>
+<p class="symbols">\(m_j\): 해당 깊이의 이진 마스크, \(\odot\): 원소별 곱, \(s\): 진폭 스케일, \(A_{t,j}\): 목표 진폭. \(\|\cdot\|_2^2\): 픽셀 오차 제곱의 합. 평면 하나와 전 영역 마스크를 쓰면 단일 평면 최적화가 됩니다.</p>
+<p><b>논문의 또 다른 기여는 초점 밖 스페클(간섭으로 생기는 입상 밝기 무늬)을 억제하는 위상 정규화입니다.</b> 초점 안의 진폭만 맞추면 위상이 불규칙하게 남을 수 있으므로, 초점 안 위상이 구간별로 매끄럽도록 제약합니다. 물리적 전파 직후의 위상에 적용해 다른 깊이로 퍼질 때의 무작위 간섭을 줄입니다. <a class="cite" href="#paper">[논문 §3.5, Fig. 5]</a></p>
+<details><summary>초점 밖 스페클을 줄이는 위상 정규화는 어디에 적용할까?</summary><p><b>스페클</b>은 결맞는 파동 간섭으로 생기는 입상 밝기 무늬입니다. 초점 안의 진폭만 맞추면 위상은 불규칙할 수 있고, 다른 깊이로 전파할 때 초점 밖 스페클이 커집니다. 논문은 초점 안 위상의 라플라시안에 L1 벌점을 줘 구간별 매끄러움을 유도합니다.</p>
+<div class="equation">\[\begin{aligned}v_j&=\mathcal P_{z_j}[C_s(e^{i\phi})],\\L&=L_A+\gamma\sum_j\|m_j\odot\Delta\arg(v_j)\|_1.\end{aligned}\]</div>
+<p class="symbols">\(\Delta\): 공간 라플라시안, \(\arg\): 위상(rad), \(\gamma\): 두 항의 비중 계수, \(\|\cdot\|_1\): 절댓값의 합. \(\gamma\)의 단위 해석은 차분·손실 정규화에 의존합니다.</p>
+<p><b>대상은 두 번째 CNN 이후가 아니라 ASM 직후의 위상입니다.</b> 모델 학습에서는 최종 출력 위상을 직접 관측하지 않으므로 그 위상의 물리적 의미가 보장되지 않습니다. \(\gamma=0\)이면 진폭만 맞추는 문제입니다. 큰 \(\gamma\)는 평활화를 강화하지만 진폭 재현과 충돌할 수 있습니다.</p>
+<p>논문은 희소한 위상 변화에 맞는 <b>ADMM(교대방향 승수법)</b> 기반 최적화를 사용합니다. SLM 위상을 단순히 흐리게 하는 필터와 다릅니다. 이번 실험에는 이 항과 ADMM을 적용하지 않았습니다. <a class="cite" href="#paper">[논문 식 (5), §3.5]</a></p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>출발점 보정은 여러 도착 거리에서 함께 작동한다</h3>
+<p>출발할 때의 파동 타이밍과 진폭을 잘 고치면 가까운 목적지와 먼 목적지 모두에 영향을 줍니다. 이것이 SLM 평면의 복소장 보정을 먼저 두는 직관입니다.</p><p>특정 도착 지점의 밝기만 고치는 방법은 다른 거리에 갔을 때 어떻게 달라질지에 대한 정보가 부족합니다. 논문은 한 평면만 학습한 모델과 여러 평면을 학습한 모델을 따로 평가했습니다.</p>
+<p>깊이 마스크는 무대의 출연자마다 “당신이 서 있을 거리에서만 선명해야 한다”는 조건을 줍니다. 초점 밖 모습은 전파의 결과로 생깁니다.</p><p>위상 정규화는 같은 물체 안에서 파동의 진행 단계가 지나치게 들쭉날쭉해지는 것을 억제해, 다른 깊이로 퍼질 때 무작위 간섭이 줄어드는 방향으로 작동합니다.</p><p class="note">여러 평면은 독립된 화면이 아닙니다. 하나의 SLM 위상에서 나온 동일한 복소장이 모든 평면을 연결합니다.</p>
+<details><summary>논문의 세 종류 평가를 구분해 읽기</summary><p>Fig. 4–5는 최적화한 위상의 <b>실제 재생 품질</b>, Table 1은 고정된 위상의 <b>전방 예측 정확도</b>, Fig. 6은 위상 변화에 대한 <b>광학 응답</b>을 비교합니다. 한 지표로 다른 질문까지 답했다고 볼 수 없습니다.</p></details>
+</aside></div>
+<div class="wide"><h3>원 논문이 실제로 검증한 범위</h3>
+<div class="flow" aria-label="논문 모델 개념도"><span>SLM 복소장</span><b>→</b><span>SLM CNN</span><b>→</b><span>ASM · 여러 거리</span><b>→</b><span>공유 복소장 CNN</span><b>→</b><span>진폭·깊이 마스크 손실</span></div>
+<p class="note">모델 구조 개념도이며 광학 배치의 축척 도면이 아닙니다.</p>
+<p>VR 실험의 8개 깊이는 SLM 기준 0.0, 1.1, 2.1, 3.2, 4.4, 5.7, 7.0, 8.2 mm이고, 이 배치의 카메라 초점 범위는 약 0–2 D(디옵터, m\(^{-1}\))입니다. <b>현재 장비의 릴레이 이후 15 mm와 직접 치환할 수 없습니다.</b> 논문은 7개 평면으로 학습하고 나머지 한 평면을 제외해 깊이 일반화를 확인했습니다. <a class="cite" href="#paper">[논문 §4.1, §4.4]</a></p>
+<details><summary>원 논문의 정량 비교: 학습 평면 수가 왜 중요한가?</summary><p>CNNprop은 SLM 쪽 CNN만, propCNN은 목표 평면 CNN만, CNNpropCNN은 양쪽 CNN을 갖는 구조입니다. 아래는 <b>전방 예측 PSNR</b>(최대 신호 대 잡음비; dB, 높을수록 좋음)의 원문 Table 1 일부입니다. 장비·평가 조건이 다른 이번 진폭 MSE와 직접 순위를 비교하지 않습니다.</p>
+<div class="table-wrap"><table><thead><tr><th>학습/평가</th><th>모델</th><th>시험 영상 PSNR</th><th>학습 제외 깊이 PSNR</th></tr></thead><tbody><tr><td>1평면/1평면</td><td>CNNprop</td><td>37.5 dB</td><td>31.1 dB</td></tr><tr><td>1평면/1평면</td><td>CNNpropCNN</td><td>38.8 dB</td><td>26.0 dB</td></tr><tr><td>7평면/1평면</td><td>CNNprop</td><td>35.2 dB</td><td>33.0 dB</td></tr><tr><td>7평면/1평면</td><td>CNNpropCNN</td><td>37.9 dB</td><td>33.1 dB</td></tr></tbody></table></div><p>한 평면의 높은 정확도가 다른 깊이에 자동으로 이어지지 않는 사례입니다. 여러 깊이의 관측과 공유 모델 구조가 함께 필요합니다.</p></details>
+</div></section>
+
+<section class="chapter" id="s4"><div class="num">04 · 10월 22–23일 소형 모델 설계</div><h2>15 mm RGB 장비에서 논문의 어느 부분을 구현했나?</h2><p class="lead">실측으로 전방 모델을 학습하고 새 위상을 생성하는 절차를 구현했습니다. 모델 구조와 감독 깊이는 계산량을 줄인 단일 평면 방식입니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명</div><h3>10월 22–23일 모델은 ASM 진폭에 양의 보정 계수를 곱한다</h3>
+<p>당시 모델은 ASM의 복소장을 진폭으로 바꾼 뒤 작은 CNN으로 공간별 진폭 배율을 예측합니다. RGB 파장마다 별도 분기를 사용합니다. <a class="cite" href="#e-code">[구현]</a></p>
+<div class="equation">\[\begin{aligned}A_{\mathrm{ASM}}&=\operatorname{crop}|\mathcal P_z[A_0e^{i\phi}]|,\\
+\widehat A&=A_{\mathrm{ASM}}\exp\!\left(g+\tfrac12\tanh C(A_{\mathrm{ASM}})\right).\end{aligned}\]</div>
+<p class="symbols">\(C\): 진폭 입력을 처리하는 소형 CNN, \(g\): 학습하는 로그 진폭 이득, crop: 중앙 평가 영역 추출. 모델 출력은 기준 백색 정규화 진폭입니다. \(g\)와 CNN 가중치는 학습하며, ASM과 보정된 조명 분포는 고정합니다.</p>
+<p><b>구조에서 도출되는 한계:</b> 목표 평면의 위상을 입력받지 않고 SLM 복소장도 보정하지 않습니다. 같은 ASM 진폭을 만드는 서로 다른 위상 패턴은 같은 예측을 얻습니다. 광량과 국소 진폭 오차를 배울 수 있지만 논문의 복소장 모델과 같은 표현력은 없습니다.</p>
+<p>10월 23일에는 RGB 세 채널 평균 진폭 MSE로 공동 학습하도록 바꿨습니다. 세 분기의 기울기를 계산해 한 번의 Adam 업데이트를 하지만, <b>분기 사이 색 혼합이나 파장 간 광학 결합을 학습하는 구조는 아닙니다.</b></p>
+<details><summary>보정 범위와 모델 규모는 어느 정도인가?</summary><p>공간 배율은 전역 이득 \(\exp(g)\) 기준 \(\exp(-0.5)\)–\(\exp(0.5)\), 약 0.607–1.649배입니다. ASM 진폭이 정확히 0인 위치에서는 이 곱셈만으로 양의 진폭을 만들 수 없습니다.</p><p>각 분기는 5×5, 3×3, 3×3 합성곱과 중간 8채널로 구성됩니다. 가중치·편향·로그 이득을 합해 채널당 866개, RGB 전체 2,598개를 학습합니다. 원 논문의 CNNpropCNN은 두 U-Net(인코더와 디코더를 건너뛰기 연결로 잇는 CNN)을 쓰며 약 6,500만 매개변수를 보고합니다. 크기 차이 자체가 현재 현상의 원인이라는 인과 검증은 수행하지 않았습니다.</p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>밝기 보정표와 파동 자체의 보정은 다르다</h3>
+<p>당시 CNN은 물길 지도를 따라 도착한 파도의 <b>높이를 보고 보정 배율을 곱하는 규칙</b>에 가깝습니다. 도착 직전의 위상이나 출발점의 잘못된 응답을 직접 표현하는 보정은 없습니다.</p><p>논문의 모델은 출발점에서 파동 자체를 바꾸고 도착점에서도 진폭과 위상을 함께 다룹니다. 당시 구현이 논문의 원리를 참고했더라도 두 결과를 같은 모델의 성능으로 부르면 안 됩니다.</p><p>RGB 공동 학습은 독립된 세 조정자가 <b>같은 평균 점수표로 동시에 업데이트</b>하는 것에 대응합니다. 서로의 입력을 섞어 처리한다는 의미는 아닙니다.</p><p class="note">이 차이는 실패 원인을 미리 단정하기 위한 것이 아니라, 어떤 가설을 실제로 검증했는지 정하기 위한 것입니다.</p>
+</aside></div>
+<div class="wide"><h3>실험 조건과 데이터 흐름</h3>
+<p>SLM 출력은 <b>1920×1080, 픽셀 피치 6.4 μm</b>를 유지했습니다. 전파 거리는 4f로 릴레이한 SLM 평면 이후 <b>15 mm</b>, 파장은 R/G/B 각각 <b>638/520/450 nm</b>입니다. 색 순차 구동(CFS)의 각 발광 구간에 맞춰 촬영했고, RGB 합성 영상은 세 구간의 정합된 측정을 결합했습니다. <a class="cite" href="#e-conditions">[실측 조건]</a></p>
+<div class="timeline"><article><h3>10월 22일 · 작동·소규모 검증</h3><p>HDMI 출력, 채널별 발광 시점, 배경 차감과 좌표 정합을 확인했습니다. 자연 영상 DIV2K 24장을 16/4/4장으로 나누고, RGB 72개 위상–촬영 채널 쌍으로 채널별 15 epoch 학습했습니다. 평가 영역은 640×384 픽셀입니다.</p></article><article><h3>10월 22–23일 · 넓은 영역</h3><p>평가 영역을 1680×960 픽셀로 넓혔습니다. 총 784개 학습용 RGB 측정과 검증·시험용 각 8개를 획득했습니다. 최근 192개 학습 측정을 보존하며 학습했고, 별도로 정한 최종 8개 타깃을 비교했습니다.</p></article><article><h3>10월 23일 · 재상승 진단</h3><p>건물·꽃 두 영상에서 고정 위상을 반복 촬영하고, 위상을 양·음 방향으로 조금씩 바꿔 응답을 측정했습니다. 같은 초기 위상과 고정 모델에서 두 학습률을 각각 200회 비교했습니다.</p></article></div>
+<p class="note">DIV2K는 다양한 고해상도 자연 영상 데이터셋입니다. 자연 영상의 질감·색·밝기 분포에서 성능을 확인하기 위해 사용했습니다. 공식 train 원본에서 학습용을, 공식 validation 원본에서 이번 검증·시험·추적·최종 평가를 분리했습니다. <a href="https://data.vision.ee.ethz.ch/cvl/DIV2K/" target="_blank" rel="noreferrer">[DIV2K 공식 자료]</a></p>
+<div class="flow"><span>sRGB 자연 영상</span><b>→</b><span>선형 광강도</span><b>→</b><span>종횡비 유지 리사이즈·중앙 crop</span><b>→</b><span>제곱근 → 목표 진폭</span><b>→</b><span>위상 생성·실측</span></div>
+<p>영상마다 밝기를 다시 맞추지 않고 채널별 보정 때 얻은 백색 기준을 고정했습니다. 밝기·배경광·색 채널 배율 차이도 오차에 반영됩니다. RGB 미리보기는 진폭을 제곱한 뒤 표시용 sRGB 변환을 적용한 영상이며, 색도계로 보정한 색 재현 평가가 아닙니다.</p>
+<details><summary>원 논문과 당시 구현의 범위를 항목별로 비교하기</summary><div class="table-wrap"><table><thead><tr><th>항목</th><th>원 논문</th><th>이번 실험</th></tr></thead><tbody><tr><td>모델</td><td>SLM 복소장 CNN + ASM + 공유 복소장 CNN</td><td>보정된 ASM + 목표 평면 진폭 배율 CNN</td></tr><tr><td>깊이</td><td>단일·다중 평면, 학습 제외 깊이 평가</td><td>릴레이 SLM 기준 +15 mm 한 평면</td></tr><tr><td>학습 관측</td><td>8,800 위상 패턴에 대응하는 실측 영상; 색 채널별 모델</td><td>넓은 영역에서 누적 800 RGB 측정(784 train + 8 val + 8 test); 최근 학습 192개 보존</td></tr><tr><td>목표</td><td>2D 영상 및 RGBD 깊이 마스크</td><td>RGB 영상, 깊이 정보 없음</td></tr><tr><td>모델 학습 손실</td><td>L1</td><td>정규화 진폭 MSE</td></tr><tr><td>초점 밖 스페클</td><td>중간 복소장 위상 정규화와 ADMM</td><td>미수행</td></tr><tr><td>새 위상 생성</td><td>학습 모델로 반복 최적화</td><td>80회 최적화 후 실촬영, 이후 CITL 비교</td></tr></tbody></table></div></details>
+<details><summary>촬영 조건·분할·학습 이력의 세부사항</summary><p>넓은 영역의 실제 노출은 R/G/B 각각 174/349/698 μs, 트리거 지연은 22/6022/12022 μs, 아날로그 이득은 0 dB입니다. 채널별 두 프레임을 평균했습니다. 초기 설정 파일의 700 μs를 모든 채널의 실제 노출로 해석하면 안 됩니다.</p><p>파장별 9점으로 호모그래피(평면 간 투영 좌표 변환)를 구하고, 별도 네 모서리를 검사했습니다. 정규화와 조명 추정에 사용한 배경·백색 관측은 모델 비교에 공통입니다.</p><p>학습 원본 800장의 순서를 seed 42로 정하고 실제로 784장의 학습용 RGB 쌍을 획득했습니다. 검증 8장은 모델 선택, 시험 8장은 고정 모델 예측 평가, 추적 8장은 반복 경과 확인, 최종 8장은 출력 비교용으로 분리했습니다. 이 네 평가 집합은 실행 안에서 서로 겹치지 않습니다.</p><p>공동 RGB 학습 전에는 채널별 짧은 학습과 CITL을 반복했습니다. 전환 후 공동 학습은 93 epoch(현재 데이터 집합 전체를 반복 처리하는 횟수)에서 검증 오차 정체로 종료됐습니다. 이는 앞선 전체 실행을 통틀어 93회만 학습했다는 뜻이 아닙니다. 전체 기록된 활성 시간은 약 12.93시간이며 촬영·최적화·학습·최종 평가를 포함합니다.</p><p>시험용 0815와 0891은 앞선 소규모 실험에서 이미 사용됐습니다. “시험 분리”는 이 실행의 파라미터 학습·모델 선택과의 분리이며, 전체 프로젝트에서 한 번도 본 적 없는 자료라는 뜻은 아닙니다.</p></details>
+</div></section>
+
+<section class="chapter" id="s5"><div class="num">05 · 10월 22–23일 결과 비교</div><h2>예측 오차는 줄었지만, 새 홀로그램의 평균 오차는 줄지 않았다</h2><p class="lead">전방 예측과 실제 위상 설계의 성능이 분리됐습니다. 성공한 한 장만 골라 이 차이를 가리면 안 됩니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명</div><h3>같은 MSE라도 비교 대상이 다르다</h3>
+<div class="equation">\[\begin{aligned}E_{\mathrm{pred}}&=\frac1N\|\widehat A_\theta(\phi)-A_{\mathrm{cam}}(\phi)\|_2^2,\\
+E_{\mathrm{out}}&=\frac1N\|A_{\mathrm{cam}}(\phi^*)-A_t\|_2^2.\end{aligned}\]</div>
+<p class="symbols">\(E_{\mathrm{pred}}\): 고정 위상의 촬영 영상을 맞히는 오차. \(E_{\mathrm{out}}\): 최적화한 위상을 표시한 뒤 목표와 비교하는 오차. \(N\): 비교 픽셀·채널 수. 두 지표 모두 기준 백색 정규화 진폭의 평균제곱오차입니다.</p>
+<p>시험 RGB 8쌍의 전방 예측 MSE는 CNN에서 감소했습니다. 그러나 최종 8장 출력에서 CNN 단독은 ASM보다 6장에서 나빴고 평균도 4.0% 나빴습니다. <b>“촬영 영상을 더 잘 예측한다”는 결과는 지지되지만, “새 홀로그램의 평균 품질이 좋아진다”는 가설은 이 조건에서 기각됩니다.</b></p>
+<p>CNN+CITL은 여덟 타깃 모두에서 두 기준보다 낮은 재촬영 오차를 보였습니다. 타깃마다 추가 실측과 최대 1000회 최적화를 사용하므로 모델 단독의 성능이나 같은 계산량의 비교로 해석하지 않습니다.</p>
+<details><summary>평균과 감소율을 어떻게 계산했나?</summary><p>각 이미지의 세 번 촬영에서 MSE를 계산해 평균하고, 이미지 8개를 같은 가중치로 평균했습니다. 감소율은 <b>전체 평균 MSE의 비</b>이며 이미지별 감소율의 평균과 다를 수 있습니다.</p><p>평균 영상의 MSE는 개별 촬영 MSE 평균보다 작아질 수 있습니다. 이 문서의 수치는 <b>개별 촬영 MSE의 평균</b>, 미리보기는 <b>평균 진폭</b>으로 만든 영상입니다. 세 반복은 같은 위상의 반복 촬영이며 24개 독립 타깃이 아닙니다.</p><p>표준 MSE를 진폭에 적용한 지표입니다. 광강도 PSNR이나 구조적 유사도 SSIM과 동일하지 않습니다. 논문의 dB 수치로 곧바로 변환해 성능을 비교하지 않았습니다.</p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>예보 정확도와 항로 설계의 성공은 다르다</h3>
+<p>주어진 항로에서 날씨를 잘 맞히는 모델이 있어도, 새 항로를 고를 때 최선의 선택을 한다는 보장은 없습니다. 학습 때와 다른 조건을 지나거나 변화 방향을 잘못 예측할 수 있습니다.</p><p>CNN의 시험 성적은 <b>기존 항로에서의 예보</b>, 최적화한 홀로그램의 실측은 <b>새로 계획한 항로의 실제 도착 결과</b>에 대응합니다. CITL은 여행 중 실제 상태를 읽으며 경로를 수정하는 과정입니다.</p><p>예보가 좋아졌다는 이유로 도착 결과도 좋아졌다고 결론내릴 수 없습니다. 둘을 모두 평가한 것이 중요합니다.</p><p class="note">위상 최적화가 학습 분포에서 벗어나는 현상은 가능한 설명입니다. 현재 기록만으로 그 크기나 영향을 따로 입증하지는 않았습니다.</p>
+</aside></div>
+<div class="wide"><h3>평가 A · 고정된 위상–촬영 쌍의 전방 예측</h3>
+<p class="compact">학습·모델 선택에서 제외한 RGB 8쌍 · 1680×960 · 기준 백색 고정 · 무차원 진폭 MSE, 낮을수록 좋음. ASM은 같은 광학·조명 보정을 쓰지만 CNN의 학습 이득과 공간 배율은 없습니다. 따라서 감소량 전체를 “공간 CNN만의 효과”로 분리할 수 없습니다. <a class="cite" href="#e-pred">[실측 E1]</a></p>
+<div class="table-wrap"><table id="pred-table"><thead><tr><th>채널</th><th class="number">보정된 ASM</th><th class="number">학습 모델</th><th class="number">MSE 감소율</th></tr></thead><tbody></tbody></table></div></div>
+<div class="wide"><h3>평가 B · 실제로 새 위상을 만들어 표시했을 때</h3>
+<div class="table-wrap"><table><thead><tr><th>방법</th><th>위상 생성</th><th>사용 정보</th><th>타깃별 카메라 피드백</th></tr></thead><tbody><tr><td>ASM</td><td>같은 랜덤 초기 위상에서 Adam 80회</td><td>거리·파장·개구·정합·백색·조명 추정</td><td>생성 중 없음, 생성 후 평가 촬영</td></tr><tr><td>CNN</td><td>같은 초기 위상에서 학습 모델로 Adam 80회</td><td>공통 보정 + 학습한 진폭 보정</td><td>생성 중 없음, 생성 후 평가 촬영</td></tr><tr><td>CNN+CITL</td><td>CNN 결과에서 최대 1000회 추가, 관측 최저 손실 위상 보존</td><td>CNN 모델 + 해당 타깃 반복 실측</td><td>매 반복 사용</td></tr></tbody></table></div>
+<p class="note">ASM 기준 역시 반복 최적화한 위상입니다. 타깃을 한 번 역전파하고 위상각을 취한 결과가 아닙니다. 최종 비교는 반복 블록 안에서 방법 순서를 섞어 각각 세 번 재촬영했습니다.</p>
+<div class="chart-wrap" tabindex="0" aria-label="가로로 탐색할 수 있는 그래프"><svg id="final-chart" class="chart" viewBox="0 0 940 370" role="img" aria-label="최종 8개 타깃별 실제 진폭 MSE"></svg></div>
+<div class="legend"><span style="--c:#657788">ASM</span><span style="--c:#b56e2e">CNN</span><span style="--c:#126d6a">CNN+CITL · 최적 위상</span></div>
+<div class="table-wrap"><table id="final-table"><thead><tr><th>DIV2K 영상</th><th class="number">ASM</th><th class="number">CNN</th><th class="number">CNN+CITL</th><th>CITL 종료</th><th class="number">관측 최적 반복</th></tr></thead><tbody></tbody></table></div>
+<p class="note">조건: 최종 RGB 8개 목표 · +15 mm · 1680×960 · 방법별 3회 · 기준 백색 고정. 값은 RGB 진폭 MSE 평균입니다. <a class="cite" href="#e-final">[실측 E2]</a></p>
+<div class="controls"><label for="target-select"><b>실촬영 비교할 영상</b></label><select id="target-select"></select><button id="target-reset">첫 영상으로</button></div>
+<div id="measured-images" class="tiles"></div><p id="image-context" class="note"></p>
+<h3>선택한 타깃의 CITL 전체 실측 오차</h3>
+<div class="chart-wrap" tabindex="0" aria-label="가로로 탐색할 수 있는 그래프"><svg id="citl-chart" class="chart" viewBox="0 0 940 320" role="img" aria-label="선택 타깃의 CITL 반복별 실제 진폭 MSE"></svg></div>
+<div class="legend"><span style="--c:#126d6a">카메라 손실 · 매 반복</span><span class="dash" style="--c:#a34a27">실행 중 관측 최저 오차</span></div><p class="readout" id="citl-readout" aria-live="polite"></p>
+<p class="note">곡선은 저장된 모든 반복의 실측 손실입니다. 최저점은 선택에 사용한 측정값이고, 표는 선택된 위상을 다시 촬영한 평균이므로 수치가 다릅니다. y축은 0부터 시작하고 타깃별 최댓값에 맞춥니다.</p>
+<details><summary>초기 소규모 성공과 최종 넓은 영역 결과가 다른 이유</summary><p>10월 22일의 작은 평가 영역(640×384), DIV2K 0891 한 장, 방법별 3회 조건에서 진폭 MSE는 ASM 0.040153, CNN 0.030530, CNN+CITL 0.023177이었습니다. CNN 단독 감소율은 24.0%였지만 <b>한 영상의 성공</b>입니다. 원본은 1668×2040 픽셀이고 중앙 영역을 640×384로 잘랐습니다. <a class="cite" href="#e-small">[실측 E0]</a></p><p>최종 평가는 영상 집합·영역·학습 과정이 다릅니다. 시간순 성능 개선 곡선처럼 연결하거나 넓은 영역만을 실패 원인으로 단정할 수 없습니다. 같은 영상·영역·촬영 조건에서 변수를 하나씩 바꾸는 비교가 필요합니다.</p></details>
+</div></section>
+
+<section class="chapter" id="s6"><div class="num">06 · 10월 23일 소형 모델 원인 진단</div><h2>왜 CITL 오차가 최저점 뒤 다시 올라갔을까?</h2><p class="lead">모델 응답 불일치와 학습률의 영향은 관측됐습니다. 전체 미분을 측정하거나 하나의 광학 부품을 원인으로 확정한 결과는 아닙니다.</p>
+<div class="cols"><article class="card"><div class="label">전문 설명</div><h3>정지 상태, 국소 응답, 업데이트 크기를 나누어 확인했다</h3>
+<p>건물(0846)과 꽃(0898)의 초기·기존 최적 위상 네 개를 각각 8회 촬영했습니다. RGB 채널별 평균 광강도 변동계수(CV: 표준편차/평균)는 약 0.6–1.3%, 진폭 MSE 표준편차는 약 0.0003–0.0009였습니다. 이는 위상이 바뀌지 않을 때의 단기 변동입니다. <a class="cite" href="#e-diag">[실측 E3]</a></p>
+<p>건물 영상의 초기·기존 최적 위상에서 세 공간 블록 방향을 선택하고, 두 섭동 크기에서 중앙 유한차분을 측정했습니다.</p>
+<div class="equation">\[D_{\epsilon,v}A(\phi)=\frac{A(\phi+\epsilon v)-A(\phi-\epsilon v)}{2\epsilon}.\]</div>
+<p class="symbols">\(v\): 채널별 평균을 제거하고 전체 RMS(제곱평균제곱근)를 1로 정규화한 공간 블록 위상 방향(무차원), \(\epsilon\): 0.05 또는 0.1 rad. \(D_{\epsilon,v}A\): 진폭 변화율(rad\(^{-1}\)). 조건마다 두 번의 ± 측정 쌍을 취하고 두 번째 쌍은 순서를 뒤집었습니다.</p>
+<p>카메라와 모델의 영상 응답 <b>코사인 유사도</b>(벡터 사이 각도의 코사인; +1이면 같은 방향) 중앙값은 ASM 0.206, CNN 0.171이었습니다. CNN은 초기 위상에서 0.257, 기존 최적 위상에서 0.100이었습니다. <b>검사한 위상·방향에서 모델과 장비의 응답이 잘 일치하지 않았습니다.</b></p>
+<p>논문 §4.5도 예측 정확도와 미분 정확도를 분리합니다. 논문의 3×3 픽셀 π 위상 변화와 이번 넓은 공간 블록의 ±작은 섭동은 동일 측정이 아니지만, <b>실제 광학계와 모델에 같은 위상 변화를 주어 비교한다</b>는 원리가 같습니다.</p>
+<details><summary>12개 조건을 12개 독립 반복으로 보면 안 되는 이유</summary><p>기준 위상 2개 × 공간 방향 3개 × 섭동 크기 2개의 조건입니다. 같은 방향의 두 섭동 크기는 독립 표본이 아니며, 한 타깃과 제한된 방향만 봤습니다. 전체 SLM 야코비안 측정이 아닙니다.</p><p>실제 손실 방향 미분과 자동미분의 부호가 일치한 조건은 ASM 4/12, CNN 6/12였습니다. 일부 실제 방향 미분은 두 반복에서 부호가 달랐습니다. 반복 2회의 표준오차는 신뢰구간이 아니며, 이 분수만으로 확률이나 통계적 우월성을 추정할 수 없습니다.</p><p>코사인 유사도는 응답의 <b>방향</b>을 비교하며 양의 배율 오차에는 둔감합니다. 작은 섭동은 국소성을 높이지만 차분 잡음을 증폭합니다. 큰 섭동은 비선형성과 8비트 위상 양자화의 영향을 다르게 받습니다.</p></details>
+</article><aside class="card analogy"><div class="label">대응 비유와 직관</div><h3>가만히 있을 때 흔들림과, 한 걸음의 반응을 구분한다</h3>
+<p>배가 흔들리는지 보려면 조타를 멈추고 반복 관찰합니다. 이것이 고정 위상 촬영입니다. 다음에는 키를 좌우로 조금씩 움직여 예상한 회전과 실제 회전이 같은지 봅니다. 이것이 중앙 유한차분입니다.</p><p>마지막으로 한 번에 꺾는 크기를 줄여 같은 횟수만큼 운항합니다. 이것이 학습률 비교입니다. 작은 조작은 과도한 이동을 줄일 수 있지만 <b>잘못된 방향표 자체를 고쳐 주지는 않습니다.</b></p>
+<p>약 34.4분의 진단 동안 고정 기준 위상의 R 평균 광강도가 처음 대비 3.8% 증가했습니다. 환경도 변했으므로 모든 재상승을 미분 오차 하나로 설명하지 않습니다.</p><p class="note">“한 걸음”은 Adam이 계산한 위상 업데이트입니다. 학습률 수치 자체가 모든 픽셀의 실제 위상 변화량(rad)과 같지는 않습니다.</p>
+<details><summary>단기 안정성과 장시간 드리프트는 양립할 수 있다</summary><p>한 번의 고정 위상 반복은 약 1분의 변동을, 세션 기준 촬영은 수십 분의 광량 변화를 봅니다. 짧은 구간에서 안정적이었다고 장시간 보정값도 고정됐다고 할 수 없습니다. 초기 실험과 후속 진단의 최적 오차 절댓값도 같은 세션의 동등 반복으로 비교하면 안 됩니다.</p></details>
+</aside></div>
+<div class="wide"><h3>학습률 비교 · 같은 200회에서 무엇이 달라졌나?</h3>
+<p>두 타깃에서 <b>같은 초기 위상, 같은 고정 CNN, 새 Adam 상태</b>를 쓰고 학습률만 0.02와 0.005로 달리했습니다. 실행 중 최적 위상과 종료 위상을 각각 세 번 재촬영했습니다. 노출·레이저·정합·정규화·모델 가중치는 고정했습니다.</p>
+<div class="controls"><label for="diag-select"><b>진단 타깃</b></label><select id="diag-select"><option value="0846">0846 · 건물</option><option value="0898">0898 · 꽃</option></select><button id="diag-reset">진단 초기화</button></div>
+<div class="chart-wrap" tabindex="0" aria-label="가로로 탐색할 수 있는 그래프"><svg id="diag-chart" class="chart" viewBox="0 0 940 330" role="img" aria-label="두 학습률의 200회 실제 진폭 MSE"></svg></div>
+<div class="legend"><span style="--c:#a34a27">학습률 0.02</span><span style="--c:#345ba0">학습률 0.005</span></div>
+<div class="table-wrap"><table id="diag-table"><thead><tr><th>타깃·학습률</th><th class="number">관측 최적 반복</th><th class="number">최적 위상 재촬영 MSE</th><th class="number">종료 위상 재촬영 MSE</th></tr></thead><tbody></tbody></table></div>
+<p class="readout" id="diag-readout" aria-live="polite"></p><div id="diag-images" class="tiles"></div>
+<p class="note">조건: 0846 또는 0898 · 1680×960 · 200회 추가 CITL · 각 위상 3회 재촬영 · 기준 백색 고정. 두 영상은 앞서 최종 평가에 쓴 타깃이므로 독립적인 새 영상 일반화 시험이 아닙니다. 최적화 재시드 반복은 수행하지 않았습니다. <a class="cite" href="#e-diag">[실측 E3]</a></p>
+<p><b>조건부 지지:</b> 낮춘 학습률은 두 타깃의 200회 종료 오차를 각각 10.5%, 13.6% 줄였습니다. 그러나 최적 위상의 재촬영 오차는 건물에서 2.3% 나빠지고 꽃에서 2.2% 좋아졌습니다. <b>종료 시 재상승 완화는 관측됐지만 최적 품질이 일관되게 높아졌다는 근거는 없습니다.</b></p>
+<details><summary>“수렴”이라고 기록된 종료는 무엇을 뜻하는가?</summary><p>장시간 실험은 최소 200회 이후, 서로 겹치지 않는 직전·최근 20개 손실의 중앙값 차이를 비교했습니다. 절댓값이 이전 중앙값의 0.2% 또는 \(10^{-5}\) 중 큰 값 이내인 상태가 세 번 연속이면 정체로 종료하고, 아니면 1000회에서 끝냈습니다.</p><p>0808은 960회에서 정체 조건을 만족했지만 최저 손실은 143회였습니다. 최근 손실이 거의 바뀌지 않았다는 의미이며 전역 최적점이나 물리적 기울기 0을 증명하지 않습니다. 후속 학습률 비교의 네 조건은 모두 200회 제한으로 끝났습니다.</p></details>
+</div>
+<div class="wide"><h3>증거로 판단하면 무엇이 남는가?</h3>
+<div class="table-wrap"><table><thead><tr><th>가설</th><th>판단</th><th>근거와 범위</th></tr></thead><tbody><tr><td>소형 CNN은 새 홀로그램을 더 잘 만든다</td><td><span class="pill bad">기각 · 최종 8장 평균</span></td><td>같은 초기 위상·80회 생성에서 평균 실측 MSE 4.0% 증가.</td></tr><tr><td>소형 CNN은 고정 위상 촬영을 더 잘 예측한다</td><td><span class="pill">조건부 지지</span></td><td>시험 RGB 8쌍의 예측 오차 감소. 이득과 공간 CNN 효과는 미분리.</td></tr><tr><td>CITL은 실측 출력 품질을 개선한다</td><td><span class="pill">조건부 지지</span></td><td>최종 8장 모두 최적 위상 재촬영 오차 감소. 추가 실측·반복 사용, 안정적 수렴은 별개.</td></tr><tr><td>모델과 장비의 국소 위상 응답은 불일치한다</td><td><span class="pill">조건부 지지</span></td><td>0846 두 기준 위상·세 방향·두 섭동 크기에서 낮은 코사인 유사도.</td></tr><tr><td>낮은 학습률이 최적 품질도 항상 높인다</td><td><span class="pill bad">기각 · 이번 두 타깃</span></td><td>종료 품질은 개선됐으나 최적 위상 재촬영 품질은 일관되지 않음.</td></tr><tr><td>논문의 3D 일반화·초점 밖 스페클 억제를 재현했다</td><td><span class="pill pending">판단 유보 · 미실험</span></td><td>당시 복소장 CNN, 다중 깊이, RGBD 마스크, 위상 정규화 미수행. 복소장 CNN의 후속 단일 평면 결과는 07 단원 참조.</td></tr></tbody></table></div>
+<p>이 진단 당시에는 <b>전방 예측·방향 미분·새 타깃 출력</b>을 같은 촬영 조건에서 함께 평가하도록 제안했습니다. 이득만 학습한 기준은 CNN의 공간 보정 효과를 분리하고, SLM 복소장 보정을 추가한 모델은 논문의 구조가 현재 장비에도 필요한지 검증합니다. 손실이 커진 실제 업데이트를 되돌리는 방식과 여러 초기 위상 반복도 학습률 효과를 구분하는 데 도움이 됩니다. 이 중 복소장 모델의 단일 평면 후속 실험을 10월 24–25일 수행했고 07 단원에 정리했습니다. 나머지 제안은 수행 결과가 아닙니다.</p>
+<div class="quiz"><h3>이해 확인 · 예측 MSE가 낮아졌는데 최종 출력 MSE가 커질 수 있을까?</h3><button data-answer="yes">그럴 수 있다</button> <button data-answer="no">그럴 수 없다</button><p class="check-answer" id="quiz-answer" aria-live="polite"></p></div>
+</div></section>
+
+__PAPER_SECTION__
+<section class="chapter" id="refs"><div class="num">참고자료 · 재현성 부록</div><h2>어디까지 근거로 확인했는가?</h2><p>논문의 설명, 이번 실측, 구조에서 도출한 해석을 구분했습니다. 04–06 단원은 10월 22–23일 기록을, 07 단원은 10월 24–25일 새로 수행한 실험을 해설합니다. 문서 생성 과정은 저장된 측정값을 읽으며 장비를 제어하지 않습니다.</p>
+<div class="ref" id="paper"><b>[논문]</b> Suyeon Choi, Manu Gopakumar, Yifan Peng, Jonghyun Kim, Gordon Wetzstein. <i>Neural 3D Holography: Learning Accurate Wave Propagation Models for 3D Holographic Virtual and Augmented Reality Displays.</i> ACM Transactions on Graphics 40(6), Article 240, 2021. <a href="https://doi.org/10.1145/3478513.3480542" target="_blank" rel="noreferrer">DOI</a> · <a href="https://www.computationalimaging.org/wp-content/uploads/2021/08/NeuralHolography3D.pdf" target="_blank" rel="noreferrer">저자 공개 PDF</a> · <a href="../guides/sources/NeuralHolography3D.pdf">저장소 PDF</a><p>§3.1 식 (1)–(2) 전파·위상 생성 / §3.2 식 (3) 복소장 모델 / §3.3 학습 / §3.4–3.5 깊이 감독·위상 정규화 / §4.4 Table 1 / §4.5 Fig. 6 미분 비교. 본문은 한국어 해설이며 원문 직접 인용문이 아닙니다.</p></div>
+<div class="ref" id="e-small"><b>[실측 E0]</b> <a href="../../results/div2k_rgb_20261022/fullcolor/metrics.json">10월 22일 DIV2K 소규모 결과</a>. 새 타깃 0891의 3회 측정.</div>
+<div class="ref" id="e-pred"><b>[실측 E1]</b> <a href="../../results/rgb80_10h_20261022/campaign/sealed_test.json">고정 모델의 시험 RGB 8쌍 예측 오차</a>. ASM은 별도 이득만 학습한 기준이 아닙니다.</div>
+<div class="ref" id="e-final"><b>[실측 E2]</b> <a href="../../results/rgb80_10h_20261022/campaign/final_evaluations.json">최종 8개 실측 평가</a> · <a href="../../results/rgb80_10h_20261022/campaign/citl.jsonl">반복별 손실</a> · <a href="../../results/rgb80_10h_20261022/campaign/plan.json">분할 계획</a> · <a href="../../results/rgb80_10h_20261022/campaign/completed.json">종료 기록</a>.</div>
+<div class="ref" id="e-diag"><b>[실측 E3]</b> <a href="../../results/citl_diagnosis_20261023_run02/protocol.json">진단 절차</a> · <a href="../../results/citl_diagnosis_20261023_run02/stability_summary.json">고정 위상 반복</a> · <a href="../../results/citl_diagnosis_20261023_run02/gradient_summary.json">방향 응답</a> · <a href="../../results/citl_diagnosis_20261023_run02/citl_summary.json">학습률 재촬영</a>.</div>
+<div class="ref" id="e-paper-run"><b>[실측 E4]</b> 10월 24–25일 복소장 모델 실험: <a href="../../results/paper_cnnpropcnn_20261024/protocol.json">고정 절차</a> · <a href="../../results/paper_cnnpropcnn_20261024/evaluation/summary.json">8장 최종 결과</a> · <a href="../../results/paper_cnnpropcnn_20261024/evaluation/forward_test.json">22쌍 전방 예측</a> · <a href="paper-results-evidence.json">수치·검증 부록</a>.</div><div class="ref" id="e-paper-probe"><b>[실측 E5]</b> <a href="../../results/paper_cnnpropcnn_20261024/evaluation/figure6_probe.json">중앙 3×3 π 변화 응답</a>. 세 측정 쌍, 두 번째 쌍은 촬영 순서 반전. 전체 야코비안 검증이 아닙니다.</div>
+<div class="ref" id="e-conditions"><b>[실측 조건]</b> <a href="../../results/rgb80_10h_20261022/acquisition.json">실제 파장별 노출·등록·백색 보정</a> · <a href="../../BENCHTOP.md">실험 절차 기록</a>.</div>
+<div class="ref" id="e-code"><b>[구현]</b> <a href="../../benchtop/optics.py">ASM·전방 모델</a> · <a href="../../benchtop/joint.py">RGB 위상 최적화</a> · <a href="../../benchtop/campaign.py">최종 평가</a> · <a href="../../benchtop/diagnose_citl.py">방향 미분·학습률 비교</a>.</div>
+<details><summary>재현성·파일·검증 범위</summary><p>수치 스냅샷: <a href="evidence.json">evidence.json</a>. 재생성 코드: <a href="build.py">build.py</a>, <a href="template.html">template.html</a>, <a href="guide.css">guide.css</a>, <a href="guide.js">guide.js</a>. 사용한 원본 경로와 SHA-256은 수치 부록에 기록했습니다.</p><p>이전 요약 중 실행 초기 상태가 남아 있어 개별 최종 평가·종료 기록·원시 손실 로그를 우선했습니다. 07 단원의 수치 감사는 최종 촬영 배열 72개에서 고정·배율 보정 MSE를 float64로 재계산했습니다. 보고값과의 최대 절대 차이는 각각 4.5×10<sup>−8</sup>, 1.3×10<sup>−8</sup> 이하였습니다. 문서 갱신을 위해 장비를 다시 촬영하거나 학습시키지는 않았습니다.</p><p>표·곡선·축소 촬영 이미지는 HTML에 포함됩니다. 수식 조판은 MathJax 3.2.2 CDN을 사용해 인터넷이 필요하며, 실패하면 상태 메시지와 LaTeX 원문이 남습니다. 저장소 내부 참고 링크는 HTML을 단독으로 옮기면 연결되지 않을 수 있으나 본문과 내장 데이터는 유지됩니다.</p><p>영상은 저장된 평균 진폭의 sRGB 미리보기를 축소했습니다. 수치는 축소 영상이 아닌 원래 측정 MSE로 계산했습니다. 실제 동작 검증 기록은 <a href="qa.json">qa.json</a>에 남깁니다.</p></details>
+<details><summary>연구 문서 자가 점검의 판정과 근거</summary><div class="table-wrap"><table><thead><tr><th>질문</th><th>판정</th><th>근거</th></tr></thead><tbody><tr><td>모델·지표·약어의 첫 등장 정의가 있는가?</td><td>예</td><td>SLM, ASM, CNN, CITL, RGBD, MSE, CV와 정규화 설명.</td></tr><tr><td>본문 개념에 내부 작업 이름이 남아 있는가?</td><td>아니오</td><td>폴더·스크립트 이름은 출처·재현성 부록에 제시.</td></tr><tr><td>수치에 지표·데이터·조건이 붙는가?</td><td>예</td><td>예측/출력, 표본 수·영역·반복·정규화 표시.</td></tr><tr><td>사전 정보 차이가 드러나는가?</td><td>예</td><td>보정·학습·추가 타깃 실측을 비교표로 명시.</td></tr><tr><td>불리한 결과의 무게가 유지되는가?</td><td>예</td><td>CNN 평균 악화와 CITL 수렴 한계와 새 모델의 DPAC 대비 SSIM·0868 밝기 열세를 명시.</td></tr><tr><td>불필요한 새 용어가 남아 있는가?</td><td>아니오</td><td>중앙 유한차분·변동계수·진폭 MSE 등 표준 용어 사용.</td></tr></tbody></table></div></details>
+</section><footer class="foot">갱신일 2026-10-25 KST · 실측 기간 2026-10-22–25 KST · <a href="#top">처음으로</a></footer></main>
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script id="guide-data" type="application/json">__DATA__</script><script>__SCRIPT__</script>
+</body></html>

@@ -12,6 +12,25 @@ in SIGGRAPH Asia 2021
 
 <img src='img/teaser.png'/>
 
+## Benchtop adaptation (Windows / LETO-3 / Blackfly S)
+
+This checkout includes a separate, modern single-plane entry point for the local
+BenchtopDisplay hardware. Start with **[BENCHTOP.md](BENCHTOP.md)**. It configures
+propagation **15 mm after the 4f-relayed SLM plane**, uses linear PySpin captures,
+checks actual HDMI output, calibrates sensor coordinates, runs real-camera CITL,
+and fits a compact forward model to captured phase/intensity pairs. The RGB CFS
+runner (`python -m benchtop.rgb_run all --out results/rgb_new`) calibrates each
+wavelength, saves intermediate SLM phases and CNN weights, and produces an
+interactive parameter timeline with held-out and actual full-color comparisons. The original
+paper's scripts and multi-plane architectures remain available below; their old
+FlyCapture/slmPy environment is not used by the benchtop entry point.
+
+Use `--div2k-root "C:\Users\khchoi_exp\Documents\DIV2K dataset"` with the RGB runner
+to generate targets from the local DIV2K images. The `generate` stage saves native
+RGB888 SLM patterns without connecting hardware, using a previously prepared bench
+profile. Image identities, sRGB linearization, aspect-preserving crop, and dataset
+splits are recorded in the target manifest; see the DIV2K section in BENCHTOP.md.
+
 ## Get started
 Our code uses [PyTorch Lightning](https://www.pytorchlightning.ai/) and PyTorch >=1.10.0, as it uses complex value operations
 

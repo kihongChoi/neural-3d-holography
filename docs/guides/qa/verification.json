@@ -1,0 +1,58 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "document": "paper-vs-results",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "document": "paper-vs-results",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "document": "paper-vs-results",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "document": "paper-vs-results",
+      "width": 320,
+      "overflow": false
+    },
+    {
+      "document": "paper-study",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "document": "paper-study",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "document": "paper-study",
+      "width": 360,
+      "overflow": false
+    },
+    {
+      "document": "paper-study",
+      "width": 320,
+      "overflow": false
+    }
+  ],
+  "verified": [
+    "offline file loading",
+    "local source links",
+    "HTML anchors",
+    "image decode for all 8 targets",
+    "quiz feedback",
+    "phase extremes",
+    "depth endpoint and tie",
+    "architecture switch",
+    "tables",
+    "responsive widths",
+    "no JavaScript page errors"
+  ]
+}

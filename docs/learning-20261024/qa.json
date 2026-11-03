@@ -1,0 +1,148 @@
+{
+  "date_kst": "2026-10-24",
+  "artifact": "neural-3d-holography-learning.html",
+  "data_checks": {
+    "source": "Existing local JSON/JSONL records; no hardware run",
+    "final_targets": 8,
+    "measurement_repeats_per_method_per_target": 3,
+    "mean_amplitude_mse": {
+      "asm": 0.11067467198396722,
+      "cnn": 0.11509296779210369,
+      "cnn_citl": 0.055738656936834254
+    },
+    "cnn_worse_than_asm_targets": 6,
+    "citl_better_than_both_baselines_targets": 8,
+    "citl_iteration_limit_targets": 7,
+    "acquisition_counts": {
+      "train": 784,
+      "val": 8,
+      "test": 8
+    },
+    "within_campaign_source_splits_disjoint": true,
+    "interference_special_cases": "Analytical values 4, 0, 1, 4 for constructive, destructive, absent second wave and full period checked numerically"
+  },
+  "browser_checks": {
+    "surface": "Codex in-app Chromium browser, localhost preview",
+    "desktop_width_px": 1280,
+    "mobile_viewport_px": [
+      390,
+      844
+    ],
+    "mathjax_rendered": true,
+    "mathjax_errors": 0,
+    "desktop_all_17_details_opened": true,
+    "mobile_single_column_and_local_horizontal_scroll": true,
+    "document_horizontal_overflow": false,
+    "interference_presets": "4.000, 0.000, 1.000 shown as expected",
+    "range_keyboard_home_end_and_reset": true,
+    "tooltip_click_and_escape": true,
+    "keyboard_tab_navigation": true,
+    "target_selection": "0846 and 0898 selected; table and loss readout checked; reset checked",
+    "measurement_images": "Four images loaded in selected final comparison; actual montage visually reviewed",
+    "learning_rate_selection": "0846 and 0898 selected; calculated 10.5% and 13.6% endpoint reductions checked; reset checked",
+    "quiz_correct_answer": true,
+    "renderer_failure": "Separate temporary copy loaded with an intentionally unavailable renderer URL. Error status and original LaTeX remained visible; chart still rendered.",
+    "final_console_errors_or_warnings": [],
+    "preview_screenshot": "preview.png",
+    "viewport_override_restored": true
+  },
+  "limits": [
+    "MathJax and its fonts require an internet connection; the deliverable does not bundle them for fully offline typesetting.",
+    "Long equations, tables and charts use local horizontal scrolling on narrow screens.",
+    "Tooltip hover-transfer timing and physical touch hardware were not independently exercised; click, keyboard focus and Escape paths were exercised.",
+    "Repository-relative source links require the surrounding repository. Main prose, scalar data, plots and reduced-resolution measured previews are embedded in the HTML.",
+    "Reported scientific measurements are reaggregated existing results, not new replications or a new statistical significance test."
+  ],
+  "writing_check": {
+    "definitions_present": "yes",
+    "internal_work_names_in_main_concepts": "no",
+    "metrics_data_conditions_present": "yes",
+    "prior_information_differences_present": "yes",
+    "unfavorable_results_preserved": "yes",
+    "unnecessary_new_terms_remaining": "no"
+  },
+  "update_20261025": {
+    "date_kst": "2026-10-25",
+    "scope": "Added completed October 24–25 single-plane CNNpropCNN experiment as unit 07; historical units 04–06 preserved.",
+    "raw_data_audit": {
+      "captured_arrays": 72,
+      "perturbation_arrays": 6,
+      "phase_sets": 8,
+      "optimization_histories": 48,
+      "steps_per_history": 1001,
+      "disjoint_source_splits": true,
+      "fixed_mse_max_absolute_difference_float64": 4.409421772e-08,
+      "fitted_mse_max_absolute_difference_float64": 1.294501709e-08,
+      "details": "paper-results-evidence.json"
+    },
+    "browser_checks": {
+      "surface": "Codex in-app browser, localhost preview",
+      "desktop_viewport_px": [
+        1280,
+        900
+      ],
+      "mobile_viewport_px": [
+        390,
+        844
+      ],
+      "details_opened": 19,
+      "mathjax_containers": 99,
+      "mathjax_errors": 0,
+      "metric_options_checked": [
+        "fixed_white_mse",
+        "fitted_amplitude_mse",
+        "fitted_clipped_srgb_ssim"
+      ],
+      "metric_graph_bars": 24,
+      "new_target_readouts_checked": [
+        "0822",
+        "0883",
+        "0851",
+        "0880",
+        "0802",
+        "0881",
+        "0878",
+        "0868"
+      ],
+      "brightness_modes_checked": [
+        "fixed",
+        "fitted"
+      ],
+      "new_reset_buttons_checked": true,
+      "comparison_images": "All four images for 0868 decoded and visually checked in fixed desktop and fitted mobile views; source WebP assets validated in generation audit. Immediate checks during rapid target switching sometimes preceded browser decoding.",
+      "mobile_expert_analogy_columns": 1,
+      "mobile_comparison_image_columns": 2,
+      "document_horizontal_overflow": false,
+      "long_tables_charts": "Local horizontal scrolling retained",
+      "keyboard_tab": "Target selector to display-brightness selector",
+      "interference_presets": [
+        4.0,
+        0.0,
+        1.0
+      ],
+      "phase_keyboard_home_end_and_reset": true,
+      "tooltip_click_and_escape": true,
+      "unit_07_navigation_verified": true,
+      "console_errors_warnings": [],
+      "viewport_override_restored": true,
+      "screenshots": [
+        "preview-20261025-desktop.jpg",
+        "preview-20261025-mobile.jpg"
+      ]
+    },
+    "limits": [
+      "Physical touch input was not tested.",
+      "This audit rechecks stored experimental results; it does not create an independent model-training replication or statistical significance test.",
+      "MathJax CDN requires internet; repository-relative reference links require the repository.",
+      "Earlier renderer-failure and old diagnostic-selector checks recorded above belong to October 24 and were not repeated in this update."
+    ],
+    "static_checks": {
+      "missing_anchors": [],
+      "duplicate_ids": [],
+      "unfilled_placeholders": [],
+      "missing_local_references": [],
+      "artifact_bytes": 16317710,
+      "sha256": "2f5f9d7789ae51fe20ea3f2d9f6460053e397564b8bbeb9dc0f81ff0ef4abf4b"
+    }
+  }
+}

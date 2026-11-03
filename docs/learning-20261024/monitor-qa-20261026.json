@@ -1,0 +1,29 @@
+{
+  "date_kst": "2026-10-26",
+  "url": "http://127.0.0.1:8767",
+  "cause": "Completed paper campaign had only an empty preparation stream in legacy live telemetry.",
+  "checks": {
+    "actual_completion_status": "completed",
+    "model_curves": 3,
+    "model_stopping_epochs": [
+      61,
+      54,
+      73
+    ],
+    "model_selected_epochs": [
+      51,
+      44,
+      63
+    ],
+    "evaluation_targets": 8,
+    "target_0868_fixed_and_fitted_checked": true,
+    "four_comparison_images_loaded": true,
+    "reset_checked": true,
+    "legacy_run_switch_roundtrip": true,
+    "browser_console_errors_warnings": [],
+    "automated_tests_passed": 2,
+    "tests": "tests.test_paper_view; tests.test_live.LiveTests.test_server_reports_stopped_writer_and_rejects_outside_paths",
+    "screenshot": "monitor-results-20261026.jpg"
+  },
+  "hardware_or_training_restarted": false
+}

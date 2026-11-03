@@ -1,0 +1,100 @@
+<section id="start"><div class="section-no">01 / 이 논문을 읽는 관점</div><h2>이미지에서 위상을 바로 예측하는 논문이 아니다.</h2>
+<p class="lead">이 논문의 중심은 <strong>“SLM 위상을 주면 실제 광학계가 어떤 빛을 만들지”를 정확하고 미분 가능하게 예측하는 forward model</strong>이다. 그 모델을 거꾸로 통과하며 위상을 반복 최적화해, 2D와 다중 깊이 홀로그램을 만든다.</p>
+<div class="callout">학습 목표: ① 모델 가중치 θ 학습과 위상 φ 최적화를 구분하기 ② 카메라 값과 모델 기울기의 역할을 설명하기 ③ CNNpropCNN이 복소장을 쓰는 이유 이해하기 ④ 깊이 마스크와 위상 정규화가 해결하는 서로 다른 문제 구분하기.</div>
+<p>원문: <em>Neural 3D Holography: Learning Accurate Wave Propagation Models for 3D Holographic Virtual and Augmented Reality Displays</em>, Choi et al., SIGGRAPH Asia / ACM TOG, 2021. <a href="sources/NeuralHolography3D.pdf">로컬 PDF</a> · <a href="https://www.computationalimaging.org/wp-content/uploads/2021/08/NeuralHolography3D.pdf">공식 PDF</a> · <a href="https://doi.org/10.1145/3478513.3480542">DOI</a>.</p>
+<table><thead><tr><th>권장 학습 순서</th><th>읽을 부분</th><th>스스로 설명할 질문</th></tr></thead><tbody><tr><td>1회 · 큰 그림 / 20분</td><td>Abstract, Fig. 2, §3.2, Fig. 4</td><td>물리 시뮬레이션과 실제 촬영의 차이를 어떻게 줄이나?</td></tr><tr><td>2회 · 수식과 절차 / 40분</td><td>§3.1–3.5, Eq. 1–5</td><td>어느 변수를 언제 학습하며 loss는 어디에 걸리나?</td></tr><tr><td>3회 · 증거와 한계 / 30분</td><td>Table 1, §4.5, Fig. 5/6/8, §6</td><td>예측·기울기·생성 품질·깊이 일반화를 각각 어떻게 검증했나?</td></tr></tbody></table>
+<p class="small">시간은 권장 학습량이다. 각 실습은 개념 설명용이며 실험대나 논문 광학계를 수치적으로 재현하는 시뮬레이터가 아니다.</p>
+<ul class="toc"><li><a href="#field">02 · 진폭·위상·강도</a></li><li><a href="#asm">03 · ASM의 물리</a></li><li><a href="#model">04 · CNNpropCNN</a></li><li><a href="#loops">05 · 세 가지 최적화 루프</a></li><li><a href="#depth">06 · RGBD와 깊이 마스크</a></li><li><a href="#phase">07 · 위상 정규화와 ADMM</a></li><li><a href="#proof">08 · 논문의 증거 읽기</a></li><li><a href="#code">09 · 코드와 용어 찾기</a></li><li><a href="#quiz">10 · 이해 점검</a></li></ul></section>
+
+<section id="field"><div class="section-no">02 / 선행 개념</div><h2>카메라는 강도를 보고, 전파는 복소장을 따른다.</h2>
+<p>복소장 <em>u</em>에는 진폭 <em>A</em>와 위상 <em>φ</em>가 함께 있다. 카메라가 직접 측정하는 것은 일반적으로 강도 <em>I</em>다. 위상형 SLM은 픽셀별 위상 지연을 제어하고, 전파 후 간섭이 밝고 어두운 무늬를 만든다.</p>
+<div class="formula"><math display="block"><mrow><mi>u</mi><mo>=</mo><mi>A</mi><msup><mi>e</mi><mrow><mi>i</mi><mi>φ</mi></mrow></msup><mo>,</mo><mspace width="1em"/><mi>I</mi><mo>=</mo><msup><mrow><mo>|</mo><mi>u</mi><mo>|</mo></mrow><mn>2</mn></msup><mo>=</mo><msup><mi>A</mi><mn>2</mn></msup></mrow></math><small>A ≥ 0: 진폭 · φ: 위상(rad) · i² = −1 · I: 강도. 실수/허수 표현은 A cos φ, A sin φ.</small></div>
+<aside class="analogy"><strong>비유 · 같은 음량의 두 스피커</strong><br>두 스피커의 개별 음량이 같아도 박자가 어긋나면 어떤 위치에서는 소리가 약해지고, 맞으면 강해진다. 빛에서는 이 “박자 차이”에 대응하는 것이 위상 차이다. 소리와 빛의 구체적 전파 조건은 다르다.</aside>
+<h3>실습 · 두 파의 상대 위상 바꾸기</h3><p>A₁=A₂=1인 완전 결맞음의 두 복소장을 더한다. 한 파의 위상만 바꿔 보자.</p>
+<div class="controls"><label for="phase-slider">상대 위상 Δφ: <output id="phase-value">0.00</output> rad<input id="phase-slider" type="range" min="0" max="6.283185" value="0" step="0.01"></label><button id="phase-zero" type="button">동위상 0</button><button id="phase-pi" type="button">반대 위상 π</button></div>
+<svg id="interference-chart" class="chart" role="img" aria-label="두 파의 상대 위상에 따른 합성 강도"></svg><p id="interference-result" aria-live="polite"></p>
+<details><summary>전개식과 극한 조건</summary><div class="formula">|u₁ + u₂|² = A₁² + A₂² + 2A₁A₂ cos(Δφ)<br>A₁=A₂=1 → I = 2 + 2 cos(Δφ)</div><p>Δφ=0이면 I=4, π이면 I=0, π/2이면 I=2다. 두 빛을 더할 때 강도를 먼저 더하면 간섭 항을 놓친다. 이 작은 실습은 한 위치의 두 파를 설명하며, SLM 전체의 에너지·개구·픽셀 구조를 계산하지 않는다. 참고 대화의 부분 결맞음 실습과 달리 여기서는 완전 결맞음을 고정한다.</p><pre><code>u = A e^{i\phi},\quad I=|u|^2
+I_{sum}=A_1^2+A_2^2+2A_1A_2\cos(\Delta\phi)</code></pre></details>
+<p class="source">연결: 논문 §3.1, Eq. 1. 현재 실험 타깃은 sRGB를 선형 강도로 바꾼 뒤 √I를 취해 진폭으로 사용한다.</p></section>
+
+<section id="asm"><div class="section-no">03 / 전파 모델</div><h2>ASM은 빛을 공간 주파수 성분으로 나눠 전파한다.</h2>
+<p>Angular Spectrum Method는 평면의 복소장을 여러 평면파 성분으로 분해한다. 각 공간 주파수 성분은 거리 <em>z</em>를 지나며 다른 위상 지연을 얻는다. 다시 합치면 다음 평면의 복소장이 나온다.</p>
+<div class="steps" aria-label="ASM 계산 순서"><span>SLM 복소장 u₀</span><b>→</b><span>2D Fourier 변환</span><b>→</b><span>전달함수 H 곱하기</span><b>→</b><span>역변환 u(z)</span></div>
+<div class="formula">u(z) = ℱ<sup>−1</sup>{ℱ[u₀] · H(fₓ,fᵧ;λ,z)}<br>H = exp[i 2πz √(λ<sup>−2</sup> − fₓ² − fᵧ²)]<small>전파 가능한 주파수 영역에서의 표현. fₓ,fᵧ: cycles/m · λ,z: m. 원문 Eq. 1과 동등한 간결 표기.</small></div>
+<p>λ와 픽셀 간격은 Fourier 좌표와 위상 축적을 정한다. z를 바꾸면 같은 SLM 위상에서도 다른 영상이 만들어진다. 이상적인 수학식이 광원의 비균일성, SLM 위상 응답, 산란광, 수차, 픽셀 결합까지 자동으로 맞추지는 않는다.</p>
+<aside class="analogy"><strong>비유 · 악보를 성부별로 나누기</strong><br>복잡한 합창을 성부별로 분해한 뒤, 각 성부의 진행 타이밍을 바꾸고 다시 합치는 과정과 닮았다. Fourier 성분은 실제로 서로 다른 공간 주파수의 평면파다.</aside>
+<details><summary>식이 코드가 될 때 빠지기 쉬운 조건</summary><p>FFT는 유한한 격자를 다루므로 padding·대역 제한·aperture·crop이 중요하다. 현재 <code>benchtop/optics.py</code>는 SLM 전체 물리 격자를 유지하고 2배 크기로 padding한 후 ASM을 적용한다. 학습 메모리를 줄이기 위해 ROI를 자르는 것과 SLM 격자를 축소해 픽셀 pitch를 바꾸는 것은 다른 조작이다.</p><p>전역 위상(piston)은 강도를 바꾸지 않는다. 현재 구현은 큰 k·z 계산의 수치 오차를 줄이려고 공통 piston을 제거한다. 이 조작이 공간적으로 다른 위상 오차를 교정하는 것은 아니다.</p></details>
+<details><summary>Eq. 2: 전파 모델로 역문제를 푸는 법</summary><div class="formula">φ* = arg min<sub>φ</sub> L<sub>A</sub>(s |f(e<sup>iφ</sup>, z)|, A<sub>target</sub>)</div><p>모델 f를 고정한 채 φ를 움직인다. s는 밝기 범위 차이를 맞추는 scale이다. 학습 가중치 θ를 바꾸는 문제와 구분하자. s를 이미지마다 다시 맞추면 밝기 오차 일부를 숨길 수 있으므로 실험 간 비교에서 같은 정책을 유지해야 한다.</p></details></section>
+
+<section id="model"><div class="section-no">04 / 핵심 기여</div><h2>물리 전파의 양쪽에 복소장 CNN을 놓는다.</h2>
+<div class="formula">f<sub>θ</sub>(e<sup>iφ</sup>, zⱼ) = C<sub>target</sub>(ASM(C<sub>SLM</sub>(e<sup>iφ</sup>), zⱼ))<small>논문 Eq. 3. 네트워크는 실수·허수 채널을 처리하는 실수 연산 CNN이다. 복소수 연산 전용 CNN이라는 뜻은 아니다.</small></div>
+<div class="controls"><label for="architecture-select">구조 비교 <select id="architecture-select"><option value="paper">논문 CNNpropCNN</option><option value="current">현재 CompactForwardModel</option><option value="asm">기준 ASM</option></select></label></div><div id="architecture-flow" class="steps"></div><p id="architecture-note" aria-live="polite"></p>
+<p>C<sub>SLM</sub>은 전파 전의 장을 보정한다. 하나의 보정된 장이 여러 zⱼ로 전파되므로 깊이를 바꿔도 공유할 수 있는 구조다. C<sub>target</sub>은 전파 후 복소장을 추가 보정하며, 논문에서는 여러 깊이에서 <strong>같은 타깃 CNN을 공유</strong>하는 것이 held-out depth에 유리했다.</p>
+<aside class="analogy"><strong>비유 · 출발점의 교정과 도착점의 교정</strong><br>출발할 때의 오차를 고치면 여러 목적지로 가는 경로가 함께 개선될 수 있다. 도착 사진만 고치면 그 장소에는 잘 맞아도 다른 거리에서는 맞지 않을 수 있다. 깊이 일반화가 자동으로 보장되는 것은 아니며 실제 제외 깊이 평가가 필요하다.</aside>
+<details><summary>구조와 학습 데이터의 구체적 설정 (§3.3)</summary><p>SLM UNet은 8번의 down/up sampling, 초기 32 feature에서 최대 512 feature를 사용한다. 타깃 UNet은 5번의 down/up sampling, 초기 8 feature에서 최대 128 feature를 사용한다. 두 CNN의 입출력은 실수·허수 2채널이다.</p><p>8개 평면 각각 DPAC 100개와 SGD 1,000개를 만들어 총 8,800 위상 패턴을 준비했다. SGD의 초기 위상과 반복 수에도 변화를 줬다. 카메라 촬영으로 학습하며, 색별 모델을 따로 학습한다. 본문은 Adam, lr 5×10⁻⁴, batch 1, ℓ₁ loss, 약 이틀의 학습과 validation 10 epoch 정체 종료를 보고한다. 현재 저장소 기본값 일부는 본문과 다르므로 재현에서는 본문 설정·코드 기본값·실제 실행 인자를 따로 기록한다.</p></details>
+<details><summary>중요한 한계: 진폭 supervision은 위상을 직접 식별하지 못한다</summary><p>카메라 강도에 맞게 학습했다고 해서 네트워크 마지막 출력 위상이 유일하게 물리적인 위상이 되는 것은 아니다. 논문이 위상 정규화를 최종 CNN 뒤가 아니라 ASM 직후에 적용하는 이유가 여기에 있다. “복소장을 쓰는 모델”과 “복소장을 직접 측정해 학습한 모델”은 다르다.</p></details>
+<p class="source">원문 Fig. 2, §3.2–3.3. 코드: <a href="../../prop_model.py">CNNpropCNN</a>. 현재 실험과의 차이는 <a href="paper-vs-results.html#gap">비교 가이드 03</a>.</p></section>
+
+<section id="loops"><div class="section-no">05 / 가장 자주 혼동하는 부분</div><h2>무엇을 고정하고, 무엇을 업데이트하는가</h2>
+<div class="table-wrap"><table><thead><tr><th>절차</th><th>바꾸는 변수</th><th>비교 대상</th><th>카메라 사용</th></tr></thead><tbody><tr><td>Forward model 학습</td><td>모델 가중치 θ</td><td>예측 진폭 ↔ 같은 φ의 촬영 진폭</td><td>학습 데이터 획득 시. 고정 데이터 fitting의 각 step은 재촬영이 필요 없음</td></tr><tr><td>학습 모델로 홀로그램 생성</td><td>SLM 위상 φ</td><td>예측 진폭 ↔ 원하는 타깃 진폭</td><td>최적화 자체는 필요 없음. 성능 검증에는 실제 촬영 필요</td></tr><tr><td>Camera-in-the-loop</td><td>SLM 위상 φ</td><td>실제 촬영 진폭 ↔ 원하는 타깃 진폭</td><td>최적화 중 반복 촬영. backward는 모델로 근사</td></tr></tbody></table></div>
+<div class="formula">Â<sub>CITL</sub> = Â<sub>model</sub> + stopgrad(A<sub>camera</sub> − Â<sub>model</sub>)<br>∇<sub>φ</sub>L ≈ (2/N) J<sub>model</sub><sup>T</sup>(A<sub>camera</sub> − A<sub>target</sub>)<small>고정 scale=1, 평균 제곱 오차에서의 표현. forward 값은 카메라, Jacobian은 모델. stopgrad는 값은 유지하고 미분 전달만 멈춘다.</small></div>
+<details><summary>왜 실제 카메라를 써도 기울기 오류가 남을까?</summary><p>정확한 loss 값 한 번만으로는 수백만 SLM 픽셀을 어느 방향으로 바꿀지 알 수 없다. 카메라가 준 residual에 모델 Jacobian을 곱하므로 Jacobian이 부정확하면 잘못된 방향으로 움직일 수 있다. 따라서 forward prediction test와 국소 섭동 응답 test를 모두 봐야 한다.</p><pre><code># 개념 의사코드: 모델 가중치는 고정, phi만 업데이트
+pred = model(phi)
+measured = capture(phi)
+surrogate = pred + (measured - pred).detach()
+loss = mean((surrogate - target_amplitude)**2)
+loss.backward()
+phase_optimizer.step()</code></pre><p>현재 <code>benchtop/joint.py</code>는 RGB 채널 loss를 각각 backward하고 한 번의 optimizer step을 적용한다. RGB 평균 목적함수라는 사실만으로 색간 결합을 학습하는 것은 아니다.</p></details>
+<aside class="analogy"><strong>비유 · 온도계와 조절 설명서</strong><br>CITL에서 카메라는 실제 온도를 읽는 온도계, 모델 기울기는 손잡이를 얼마나 돌려야 하는지 알려주는 설명서다. 온도계가 정확해도 설명서가 틀리면 조절이 흔들릴 수 있다.</aside>
+<h3>연결 연습</h3><p>현재 실험에서 CNN의 예측 MSE는 낮아졌지만 생성 영상 MSE는 평균적으로 조금 높아졌다. 이는 위의 두 번째 행에서 모델을 최적화에 사용하는 능력까지 자동으로 좋아지지는 않았음을 보여준다. <a href="paper-vs-results.html#metrics">두 평가의 실제 숫자 보기</a>.</p></section>
+
+<section id="depth"><div class="section-no">06 / 2D에서 3D로</div><h2>각 픽셀의 깊이에 해당하는 평면만 직접 감독한다.</h2>
+<p>RGBD는 색과 깊이 D(x,y)를 함께 제공한다. 논문은 깊이를 가장 가까운 표시 평면에 배정해 이진 마스크 mⱼ를 만든다. 각 픽셀은 한 평면에서 in-focus 진폭을 맞추고, 다른 평면에서의 흐림을 모두 강제로 지정하지 않는다.</p>
+<div class="formula">j*(x,y) = arg min<sub>j</sub> |zⱼ − D(x,y)|<br>mⱼ(x,y) = 1[j = j*(x,y)]<br>L<sub>A</sub> = Σⱼ ‖mⱼ ⊙ (s|f<sub>θ</sub>(e<sup>iφ</sup>,zⱼ)| − A<sub>target</sub>)‖²₂<small>Eq. 4–5의 학습용 표기. 모든 z와 D는 같은 좌표·단위여야 한다. 정확히 중간인 경우 이 실습은 앞 평면을 선택한다.</small></div>
+<h3>실습 · 하나의 물체가 어느 평면에 배정되는가</h3><p>균일한 깊이를 가진 한 영역을 0, 5, 10, 15, 20, 25, 30, 35 mm의 <strong>설명용</strong> 평면에 배정한다. 논문의 실제 8평면 간격과는 다르다.</p>
+<div class="controls"><label for="depth-slider">영역 깊이 D: <output id="depth-value">12</output> mm<input id="depth-slider" type="range" min="0" max="35" value="12" step="0.5"></label></div><div id="mask-board" class="mask-board"></div><p id="mask-result" aria-live="polite"></p>
+<aside class="analogy"><strong>비유 · 선반별 책임 영역</strong><br>물체가 놓인 선반에는 그 물체가 선명해야 한다는 조건을 건다. 다른 선반에서 그 물체가 정확히 어떤 흐림이 되어야 하는지까지 전부 고정하면 조건이 지나치게 많아질 수 있다.</aside>
+<details><summary>왜 전체 focal stack을 목표로 주지 않았나?</summary><p>여러 초점 영상 전체를 강제하려면 렌더링 비용이 들고, SLM이 제공하는 자유도보다 많은 관측 조건을 걸 수 있다. 또 사람의 pupil 크기나 장비 개구에 따라 blur가 달라진다. 논문은 RGBD 마스크로 in-focus 영역을 먼저 맞추는 경로를 선택했다. 그러나 mask 밖을 직접 감독하지 않으므로 out-of-focus 스페클 문제가 남으며, 다음 절의 위상 정규화가 이를 보완한다.</p></details>
+<p class="source">원문 §3.4. 실제 VR 실험은 물리적으로 0, 1.1, 2.1, 3.2, 4.4, 5.7, 7.0, 8.2 mm 평면을 사용했다(§4.1). 카메라 쪽 diopter와 SLM 쪽 mm는 광학계가 연결하는 서로 다른 좌표다. 현재 15 mm 단일 평면 결과로 이 깊이 범위를 검증한 것은 아니다.</p></section>
+
+<section id="phase"><div class="section-no">07 / 디포커스 스페클</div><h2>선명한 곳의 위상을 정돈해, 흐려진 곳의 거동을 바꾼다.</h2>
+<p>같은 in-focus 진폭을 만드는 장이라도 위상이 제각각이면 전파하면서 강한 간섭 스페클이 생길 수 있다. 논문은 in-focus 영역의 위상을 구간별로 부드럽게 만드는 정규화를 추가한다. 여기서 정규화하는 것은 <strong>SLM 위상 자체가 아니라, 보정된 SLM 장이 ASM으로 전파된 직후의 위상</strong>이다.</p>
+<div class="formula">ūⱼ = ASM(C<sub>SLM</sub>(e<sup>iφ</sup>), zⱼ)<br>L = L<sub>A</sub> + γ Σⱼ ‖mⱼ ⊙ ΔΦ(ūⱼ)‖₁<small>논문 Eq. 5. Φ: 복소장의 위상 추출 · Δ: 공간 Laplacian · γ: 정규화 가중치 · ⊙: 원소별 곱.</small></div>
+<p>단순한 “모든 위상을 동일하게” 만드는 조건이 아니다. Laplacian의 ℓ₁은 많은 위치의 곡률을 억제하면서 일부 경계의 변화를 허용하는 방향으로 작동한다. γ가 커질수록 정규화가 강해지지만, 타깃 재현과의 균형은 실험으로 정해야 한다.</p>
+<details><summary>왜 마지막 타깃 CNN의 출력 위상을 쓰지 않을까?</summary><p>카메라 supervision은 강도/진폭을 제한한다. 마지막 CNN의 위상 출력까지 물리적으로 맞는다고 보장하지 못한다. 그래서 논문은 C<sub>target</sub> 이전의 ASM 출력 위상을 정규화한다. 공개 코드 <code>prop_model.py</code>도 마지막 CNN에서 진폭을 가져오고, 출력 장의 위상은 <code>target_field.angle()</code>에서 유지한다.</p></details>
+<details><summary>ADMM을 직관적으로 이해하기</summary><p>ℓ₁ 항은 드문 큰 변화와 많은 작은/0인 변화를 선호한다. 이를 일반적인 gradient descent만으로 충분히 강하게 구현하기 어려워 논문은 ADMM 계열 solver를 사용했다. 개념적으로 q = m⊙ΔΦ(ū)라는 보조 변수를 두고, 진폭을 잘 맞추는 φ 갱신과 q의 희소성을 만드는 갱신을 나눠 교대로 수행한다.</p><div class="formula">soft(v, τ) = sign(v) · max(|v| − τ, 0)</div><p>soft threshold는 ℓ₁ proximal 연산의 기본 도구다. 여기 식은 ADMM 이해를 위한 일반 원리이며 논문의 전체 solver 의사코드는 아니다. 비선형 광학 문제의 전역 최적 수렴을 보장한다고 해석해서는 안 된다. 세부 유도는 논문 보충자료를 따로 확인해야 한다.</p></details>
+<aside class="analogy"><strong>비유 · 물결의 높이와 진행 방향</strong><br>어느 순간 원하는 물결 높이를 맞추더라도, 제각각인 위상으로 파가 진행하면 다른 위치에서 요동칠 수 있다. 위상의 공간 변화를 정돈하는 것은 다음 위치에서 생길 요동을 간접적으로 제어하는 일이다.</aside>
+<p class="source">원문 §3.5, Eq. 5, Fig. 5. 현재 benchtop 결과에는 이 다중 깊이 정규화 실험이 포함돼 있지 않다.</p></section>
+
+<section id="proof"><div class="section-no">08 / 숫자와 그림을 읽는 법</div><h2>논문은 서로 다른 네 가지 질문에 답한다.</h2>
+<table><thead><tr><th>질문</th><th>원문 위치</th><th>읽을 때 확인할 것</th></tr></thead><tbody><tr><td>카메라 결과를 잘 예측하나?</td><td>Table 1, §4.4, p.8</td><td>train/test와 held-out plane 구분. 생성 품질 표가 아님</td></tr><tr><td>실제 홀로그램을 잘 만드나?</td><td>Fig. 4, §4.2, p.7</td><td>같은 장비에서 SGD-ASM/HIL/NH, CITL-ASM, SGD-CNNpropCNN 비교</td></tr><tr><td>깊이를 바꾸고 초점을 이동해도 좋은가?</td><td>Fig. 5, §4.3, p.8</td><td>in-focus 영역과 out-of-focus 영역을 따로 보기. ADMM 효과는 후자에서 특히 중요</td></tr><tr><td>위상 변화에 대한 응답을 맞추나?</td><td>Fig. 6, §4.5, p.9</td><td>카메라 유한차분과 모델 유한차분 비교. 전체 물리 Jacobian은 아님</td></tr></tbody></table>
+<h3>Table 1의 핵심 부분만 읽기</h3><p>아래는 원문에 보고된 forward prediction PSNR(dB)의 일부다. 값이 높을수록 좋다. 동일 열 안에서 비교한다.</p>
+<div class="table-wrap"><table><thead><tr><th>학습 / 평가</th><th>모델</th><th>test</th><th>held-out plane</th></tr></thead><tbody><tr><td>1평면 / 1평면</td><td>ASM</td><td>21.0</td><td>20.8</td></tr><tr><td>1평면 / 1평면</td><td>CNNprop</td><td>37.5</td><td>31.1</td></tr><tr><td>1평면 / 1평면</td><td>CNNpropCNN</td><td>38.8</td><td>26.0</td></tr><tr><td>7평면 / 7평면</td><td>ASM</td><td>21.0</td><td>20.8</td></tr><tr><td>7평면 / 7평면</td><td>CNNprop</td><td>34.9</td><td>33.0</td></tr><tr><td>7평면 / 7평면</td><td>CNNpropCNN</td><td>37.6</td><td>33.1</td></tr></tbody></table></div>
+<p><strong>읽어낼 내용:</strong> 1평면만 학습했을 때 CNNpropCNN은 같은 평면의 새 이미지에서는 좋지만, 제외 깊이에서는 CNNprop보다 낮다. 7평면 학습 후 CNNpropCNN의 제외 깊이 성능은 좋아진다. 따라서 “CNN을 더 붙이면 모든 깊이에서 무조건 좋아진다”가 아니라 <strong>구조와 다중 깊이 학습이 함께 중요하다</strong>는 근거로 읽어야 한다.</p>
+<details><summary>Fig. 6와 현재 진단은 같은 시험인가?</summary><p>논문의 Fig. 6는 0 위상과 중심 3×3 픽셀 블록의 π 변화로 얻은 카메라 차분을 시각화한다. 단일 픽셀 변화는 SNR이 너무 낮았다고 설명한다. 모든 모델도 공정한 비교를 위해 autodiff 대신 finite difference로 계산했다.</p><p>현재 진단은 0846의 두 기준 위상에서 3개 방향, ε 0.05/0.1 rad, 중앙차분 2쌍을 사용했다. 진폭 응답 cosine과 loss 방향 미분을 보므로 논문의 Fig. 6 PSNR과 직접 숫자를 비교할 수 없다. 두 시험 모두 제한된 섭동을 통한 모델 진단이라는 점은 공유한다.</p></details>
+<details><summary>논문이 주장하지 않는 것 (§6)</summary><p>실시간 위상 생성, 모든 시점 의존 효과, 무제한 eyebox, 착용 가능한 완제품을 달성한 논문은 아니다. 위상 생성은 수십 초에서 수분이 드는 반복 solver이고, 실시간 inverse network 학습은 향후 과제로 둔다. AR 광도파관에서는 디포커스와 위상 정규화의 한계도 남는다.</p></details>
+<div class="callout caution">Table 1의 37.6 dB와 현재 실험의 MSE=0.024941을 변환해 “논문 대비 몇 dB 부족”이라고 쓰지 않는다. 지표 정의·정규화·ROI·데이터·깊이·광학계가 일치해야 직접 비교가 가능하다.</div></section>
+
+<section id="code"><div class="section-no">09 / 코드로 돌아가기</div><h2>개념을 파일에 연결하는 지도</h2>
+<div class="table-wrap"><table><thead><tr><th>알고 싶은 것</th><th>원 논문 코드</th><th>현재 실험 코드</th></tr></thead><tbody><tr><td>전파 모델</td><td><a href="../../prop_model.py">prop_model.py</a>, <a href="../../prop_ideal.py">prop_ideal.py</a></td><td><a href="../../benchtop/optics.py">optics.py</a>의 ASM / CompactForwardModel</td></tr><tr><td>모델 학습</td><td><a href="../../train.py">train.py</a></td><td><a href="../../benchtop/rgb_training.py">rgb_training.py</a></td></tr><tr><td>위상 최적화·CITL</td><td><a href="../../algorithms.py">algorithms.py</a></td><td><a href="../../benchtop/joint.py">joint.py</a></td></tr><tr><td>획득·검증·분할</td><td><a href="../../dataset_capture.py">dataset_capture.py</a></td><td><a href="../../benchtop/campaign.py">campaign.py</a></td></tr><tr><td>민감도 진단</td><td>논문 §4.5</td><td><a href="../../benchtop/diagnose_citl.py">diagnose_citl.py</a></td></tr></tbody></table></div>
+<h3>용어 카드 · 클릭하거나 Tab으로 이동해 펼치기</h3><div class="glossary">
+<details><summary>SLM · 공간 광 변조기</summary><p>픽셀별 빛의 상태를 바꾸는 장치. 이 연구는 phase-only SLM의 위상 패턴을 최적화한다.</p></details>
+<details><summary>Complex field · 복소장</summary><p>진폭과 위상을 함께 담는 장. 강도만으로는 전파를 완전히 결정할 수 없다.</p></details>
+<details><summary>Forward / inverse</summary><p>Forward: 위상→빛. Inverse: 원하는 빛→위상. 논문은 주로 forward 모델을 학습하고 inverse 문제는 반복 최적화한다.</p></details>
+<details><summary>Jacobian · 야코비안</summary><p>각 SLM 위상 변화가 각 출력 픽셀을 얼마나 바꾸는지 나타내는 미분 관계. 방향 미분은 그 전체 중 특정 방향의 응답이다.</p></details>
+<details><summary>Held-out image / depth</summary><p>학습에 쓰지 않은 이미지와 학습에 쓰지 않은 깊이는 다른 일반화 축이다. 둘을 별도로 평가해야 한다.</p></details>
+<details><summary>Speckle · 스페클</summary><p>결맞는 빛이 간섭해 만드는 불규칙한 밝기 무늬. 센서 잡음과 구분해야 한다.</p></details>
+<details><summary>Homography · 호모그래피</summary><p>같은 평면의 카메라 좌표와 타깃 좌표를 대응시키는 변환. 깊이·광학계 변경 시 재확인이 필요하다.</p></details>
+<details><summary>Diopter · 디옵터</summary><p>거리(m)의 역수 단위 D. 단순 수치 변환만으로 SLM-상면 거리와 관찰자 초점 거리를 동일시할 수 없다.</p></details>
+<details><summary>Plateau · 정체</summary><p>설정한 loss 변화 임계값 안에 들어온 상태. 전역 최적점이나 모든 조건에서의 수렴을 뜻하지 않는다.</p></details>
+<details><summary>DPAC</summary><p>Double phase-amplitude coding. 복소장을 두 위상 패턴으로 부호화하는 비교 방법이며, CNNpropCNN이라는 전파 모델과 같은 종류의 명칭이 아니다.</p></details>
+</div></section>
+
+<section id="quiz"><div class="section-no">10 / 이해 확인</div><h2>설명할 수 있으면 다음 단계로</h2>
+<div class="exercise" data-answer="0"><h3>1. Forward 모델 학습 때 업데이트하는 것은?</h3><div class="quiz-options"><button data-choice="0">네트워크 가중치 θ</button><button data-choice="1">평가 타깃의 위상 φ만</button></div><p class="feedback" aria-live="polite"></p><template>맞습니다. 촬영된 phase/camera 쌍에서 모델 가중치를 학습합니다. 그 모델을 고정한 뒤 새 타깃에 대한 φ를 최적화합니다.</template></div>
+<div class="exercise" data-answer="1"><h3>2. CITL은 실제 광학계의 정확한 미분을 사용한다?</h3><div class="quiz-options"><button data-choice="0">그렇다</button><button data-choice="1">아니다. 카메라 값과 모델 기울기를 결합한다</button></div><p class="feedback" aria-live="polite"></p><template>맞습니다. 측정값이 정확해도 backward Jacobian의 오차가 남습니다.</template></div>
+<div class="exercise" data-answer="1"><h3>3. 위상 정규화는 어디에 적용되나?</h3><div class="quiz-options"><button data-choice="0">마지막 타깃 CNN의 위상 출력</button><button data-choice="1">SLM CNN 이후 ASM으로 전파된 장의 위상</button></div><p class="feedback" aria-live="polite"></p><template>맞습니다. 타깃 CNN의 위상은 강도 supervision만으로 물리적으로 의미 있다고 보장되지 않습니다.</template></div>
+<div class="exercise" data-answer="0"><h3>4. 단일 평면 실측 성공으로 아직 알 수 없는 것은?</h3><div class="quiz-options"><button data-choice="0">제외 깊이 일반화와 3D 디포커스 품질</button><button data-choice="1">그 평면에서 카메라 촬영이 가능하다는 사실</button></div><p class="feedback" aria-live="polite"></p><template>맞습니다. 깊이별 보정·다중 평면 데이터·미사용 깊이 평가가 추가로 필요합니다.</template></div>
+<h3>마지막 자기 설명</h3><label class="check"><input type="checkbox">“빛의 세기만 맞으면 기울기도 맞는가?”에 반례를 설명할 수 있다.</label><label class="check"><input type="checkbox">Fig. 2의 각 블록이 어떤 정보를 받고 무엇을 내보내는지 말할 수 있다.</label><label class="check"><input type="checkbox">RGBD 마스크가 남기는 자유도와 위상 정규화의 목적을 연결할 수 있다.</label><label class="check"><input type="checkbox">Table 1, Fig. 4, Fig. 5, Fig. 6의 평가 질문을 구분할 수 있다.</label><label class="check"><input type="checkbox">현재 소형 진폭 CNN과 논문의 CNNpropCNN 차이를 설명할 수 있다.</label>
+<p>다음에는 <a href="paper-vs-results.html">논문과 현재 실험의 차이</a>를 열어 실제 숫자와 종료 기록을 읽어 보자. 이 문서의 개념이 현재 결과를 어디까지 설명하고, 무엇을 추가로 측정해야 하는지 확인하는 순서다.</p>
+<p class="source">이 가이드는 논문 본문 12쪽, 공개 저장소의 원 코드, 현 실험 코드를 대조해 작성했다. 보충자료 전체의 별도 검토나 저자 실험 재현을 완료했다는 의미는 아니다. 참고 대화에서 확인한 설명↔비유, 접는 풀이, 수식, 실습, 용어·확인 문제 형식을 반영했다.</p></section>

@@ -1,0 +1,22 @@
+{
+  "slm_shape": [1080, 1920],
+  "slm_screen": "LETO-3-0088",
+  "slm_pitch_m": 0.0000064,
+  "relay_magnification": 1.0,
+  "distance_m": 0.015,
+  "wavelength_m": 0.000000520,
+  "channel": "green",
+  "invert_phase": true,
+  "fourier_aperture": 0.5,
+  "camera_serial": "25222112",
+  "camera_pixel_m": 0.00000345,
+  "exposure_us": 700.0,
+  "gain_db": 0.0,
+  "trigger": "Line0",
+  "trigger_delay_us": 6022.0,
+  "settle_s": 0.3,
+  "average_frames": 2,
+  "roi_shape": [960, 1680],
+  "wide_registration": true,
+  "seed": 42
+}
