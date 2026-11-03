@@ -86,12 +86,12 @@ def mse_metrics(prediction, target):
                 fitted_amplitude_scale=float(scale))
 
 
-def image_metrics(prediction, target):
+def image_metrics(prediction, target, *, fit_brightness=True):
     """Explicit display-space metrics in addition to linear-amplitude metrics."""
     import numpy as np
     from scipy.ndimage import gaussian_filter
     metrics = mse_metrics(prediction, target)
-    scale = metrics['fitted_amplitude_scale']
+    scale = metrics['fitted_amplitude_scale'] if fit_brightness else 1.
     def display(a):
         intensity = np.clip(a**2, 0, 1)
         return np.where(intensity<=.0031308,12.92*intensity,1.055*intensity**(1/2.4)-.055)
@@ -103,6 +103,7 @@ def image_metrics(prediction, target):
     vt=gaussian_filter(t*t,1.5,truncate=3.5)-mu_t**2
     cov=gaussian_filter(p*t,1.5,truncate=3.5)-mu_p*mu_t
     ssim=((2*mu_p*mu_t+.01**2)*(2*cov+.03**2))/((mu_p**2+mu_t**2+.01**2)*(vp+vt+.03**2))
-    metrics.update(fitted_clipped_srgb_psnr=-10*math.log10(max(mse,1e-12)),
-                   fitted_clipped_srgb_ssim=float(ssim[5:-5,5:-5].mean()))
+    prefix = 'fitted' if fit_brightness else 'fixed'
+    metrics[prefix+'_clipped_srgb_psnr']=-10*math.log10(max(mse,1e-12))
+    metrics[prefix+'_clipped_srgb_ssim']=float(ssim[5:-5,5:-5].mean())
     return metrics
