@@ -5,3 +5,8 @@ __pycache__/
 *.pyc
 results/
 calibration/benchtop/
+docs/learning-20261024/preview_server_*.log
+exports/neural3d_*/
+exports/neural3d_*.zip
+exports/neural3d_*.zip.sha256
+exports/latest_*package.json

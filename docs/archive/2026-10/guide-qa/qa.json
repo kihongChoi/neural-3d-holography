@@ -1,6 +1,6 @@
 {
   "date_kst": "2026-10-24",
-  "artifact": "neural-3d-holography-learning.html",
+  "artifact": "../../../learning-20261024/neural-3d-holography-learning.html",
   "data_checks": {
     "source": "Existing local JSON/JSONL records; no hardware run",
     "final_targets": 8,

@@ -10,12 +10,12 @@ import re
 import shutil
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 KST = timezone(timedelta(hours=9))
 start = datetime.now(KST)
 name = 'neural3d_reports_' + start.strftime('%Y%m%d_%H%M%S_KST')
 OUT = ROOT / 'exports' / name
-OUT.mkdir(exist_ok=False)
+OUT.mkdir(parents=True, exist_ok=False)
 CURRENT = 'paper_cnnpropcnn_20261024'
 status_bytes = (ROOT / 'results' / CURRENT / 'status.json').read_bytes()
 status = json.loads(status_bytes)

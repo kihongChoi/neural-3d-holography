@@ -6,7 +6,7 @@ import json
 import re
 import zipfile
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[3]
 src = root / 'exports/neural3d_reports_20261024_201821_KST'
 dst = root / 'exports/neural3d_learning_essentials_20261024'
 dst.mkdir(exist_ok=False)

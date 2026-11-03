@@ -14,6 +14,9 @@ in SIGGRAPH Asia 2021
 
 ## Benchtop adaptation (Windows / LETO-3 / Blackfly S)
 
+The [RGB experiment plan and run log](docs/rgb-asm-nh3d-lut-plan.md) defines the current ASM, learned propagation model and LUT comparison.
+The October 2026 [guide QA records](docs/archive/2026-10/guide-qa/) and [report packaging scripts](scripts/archive/2026-10/) are archived. The scripts use the original October result directories and write packages under `exports/`.
+
 This checkout includes a separate, modern single-plane entry point for the local
 BenchtopDisplay hardware. Start with **[BENCHTOP.md](BENCHTOP.md)**. It configures
 propagation **15 mm after the 4f-relayed SLM plane**, uses linear PySpin captures,
