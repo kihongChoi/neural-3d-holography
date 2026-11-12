@@ -1,0 +1,18 @@
+{
+  "rgb_lut_candidate.npz": "034d9e8454e86190c7e1e19be64c8f44a54bb699ea5c2e9eb6e2e0add217b569",
+  "metadata.json": "0682c8fe278294406c93209dff2815a081225be37aec3ba4f4e7e32f4f056db5",
+  "rgb_lut_table.json": "051bdbdfaea1d8ce22cb95a8dd4bd71fb708b32dfc4d9e0fa592e45f2e9af52b",
+  "rgb_lut_table.csv": "f3ca88fa4f13db707b3276affaf96b40dad017d180ede10689e890072579daea",
+  "apply_rgb_lut.py": "b671dbbea215fe7bc1069e788e2e55ca935d1a502e92947562c9bc63577fbfcd",
+  "summary.json": "d53a334247df0b1485910013d4833994d44026d26a310805f3eeaa69a946e574",
+  "selected_score.json": "5aeca37085fd2a685ef7fa6d97bd40f558cd387d98da63f071f6a533b306eb1c",
+  "README.md": "f1ad41a4062fafcc9d3ff31b287e3e4c062eac0e06b564de88f9f2ad98ae6697",
+  "freeze.json": "66150a9358aee3ee020cefcb8da4cb8d606907e0107e9409cd34165aed91e3c8",
+  "preflight.json": "8e59a0e2bd988f21ffc21515a4527fcda5172b1af64dd64d4f5ba1ba90f0f0fc",
+  "baselines.json": "9ed08e2339b189a2272003bb424b172f59ddca690f20ba1f64a0ac501122b335",
+  "protocol.md": "badfe6377e4fa3dce989799e16a821b7a1d2302934850e72df98af98b972573c",
+  "run_lut.py": "bb73c6294bfc6177e5b9d6059d1f43f1bec3b84e5fbd401fe8f77524b381d985",
+  "finalize.py": "f57ea3c2a480d73db188b8cfefb1e517fd3b97d8763088f3f345960be0346b45",
+  "input_audit.json": "946ca86dd151fabf018c4aa2309d0f09c50ff4009824b9b358d63c02579168fb",
+  "target_audit.json": "f3cd4ea7aa7964a2c720f4acc787473dcfc0226490eebed5eb56cf1efdd06c3a"
+}

@@ -14,6 +14,13 @@ in SIGGRAPH Asia 2021
 
 ## Benchtop adaptation (Windows / LETO-3 / Blackfly S)
 
+**실시간 카메라 뷰어:** `Start-CameraViewer.cmd`를 더블클릭하거나
+`.\.venv\Scripts\python.exe -m benchtop.camera_viewer --start`를 실행한다.
+외부 SLM 프로그램의 화면을 Line0 V-Sync로 계속 촬영하면서 레이저 ON/OFF,
+노출 조정, 스테이지 호밍·0.5–10 mm 간격 이동·0.05–2 mm/s 속도 설정·현재 위치 표시를 제공한다.
+SLM 재생 탭에서 일반 사진을 단일 패스 DPAC로 바꿔 중앙 면적80%에 재생하고 검증 RGB LUT를 ON/OFF할 수 있다.
+사용 방법과 장치 연결 조건은 [카메라 뷰어 안내](docs/camera-viewer.md)를 참고한다.
+
 The [current RGB experiment plan](docs/rgb-asm-nh3d-lut-plan.md) covers DPAC-only data generation and camera evaluation of the real-time Gaussian Splatting display LUT.
 The October 2026 [guide QA records](docs/archive/2026-10/guide-qa/) and [report packaging scripts](scripts/archive/2026-10/) are archived. The scripts use the original October result directories and write packages under `exports/`.
 
