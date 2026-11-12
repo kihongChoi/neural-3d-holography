@@ -1,0 +1,224 @@
+{
+  "updated_kst": "2026-11-09T21:03:06.980696+09:00",
+  "timezone": "Asia/Seoul",
+  "automation_id": "rgb-craft",
+  "schedule_local": "21:00 daily",
+  "craft_space_id": "b692aa0f-ec12-304e-a706-a5ed5b69b773",
+  "plan_root_block_id": "0f25bbbc-896f-8cdd-757f-5e535c9f421c",
+  "plan_url": "https://docs.craft.do/editor/d/b692aa0f-ec12-304e-a706-a5ed5b69b773/b616a718-4b69-52fe-3f01-f0376037d0ee",
+  "repository": "C:/Users/khchoi_exp/Documents/GitHub/neural-3d-holography",
+  "acquisition_run": "results/20261106-135041_integrated-rgb-2500-raw-acquisition",
+  "training_plan": "results/20261106-182328_integrated-rgb-five-day-training-plan/training_plan.json",
+  "resource_audit": "results/20261106-183510_joint-rgb-resource-audit",
+  "active_training_run": "results/20261106-212946_a100-integrated-rgb-training",
+  "actual_dataset_training_started": true,
+  "reports": {
+    "2026-11-06": {
+      "daily_root_block_id": "8675511B-E76D-46C0-AAC5-9C08BCC1AFA7",
+      "url": "https://docs.craft.do/editor/d/b692aa0f-ec12-304e-a706-a5ed5b69b773/5560405C-6696-409C-93C9-A9843F997857/x/d8737bc1-d3b7-12f4-b0f9-ea0061defd99",
+      "block_ids": [
+        "d8737bc1-d3b7-12f4-b0f9-ea0061defd99",
+        "2a44be98-08b6-0fdd-4566-f4d8bd9a38ad",
+        "aff731d5-0e3b-bb3f-2632-fbeed9f92251",
+        "8b283e94-d94a-214e-eb0f-c81e2525f383",
+        "3f42ec08-e1f8-38f2-3159-8b6b6cc0c4d3",
+        "bb723474-c347-606c-16c9-a7ee29aa9c2c",
+        "304d7301-fdd0-fef7-b44e-7ff85d785b03",
+        "bf54c093-b9fe-28a0-d106-01a0ddecbb60",
+        "39b7d2ac-9ba7-b5b1-aa84-a0f9ea7fde59",
+        "727a7440-f7fa-f4d6-57d4-8797c4a3e0a4"
+      ],
+      "status": "joint_training_running_at_last_nov6_check",
+      "server_update_block_ids": [
+        "b896d295-afbd-0666-c8be-e6584e205ba5",
+        "ea54ace5-6d71-9034-bb88-64cfb1248544",
+        "663af72b-7a2c-c2ac-abdc-8687e7cfca25",
+        "a02994cf-2487-9667-a6c9-f585854c7a48"
+      ],
+      "transfer_posts": {
+        "daily_block_ids": [
+          "dd488f95-af26-70e2-5ddd-70f0baf4e18b",
+          "f4f643ee-a475-6bc5-507b-45fadb8f80a7",
+          "a835d4d9-e8f2-389e-dd57-a77256a6ad11",
+          "ebff0440-9180-2e6b-78a0-85c700697e48",
+          "459e6d13-9e6f-acc2-cd9a-4fe895ff587a"
+        ],
+        "plan_block_ids": [
+          "25056a7f-4fdb-984c-ebe3-c8e324eca5e6",
+          "856b9246-de2c-44c6-3ce3-ae7886363c30"
+        ]
+      },
+      "last_daily_check_kst": "2026-11-06T21:47:11.732572+09:00",
+      "daily_check_result": "Late backfill: Nov6 23:42:56 KST main9425 samples/steps,epoch1.256667; epoch1 selection complete",
+      "daily_check_updated_blocks": [
+        "304d7301-fdd0-fef7-b44e-7ff85d785b03",
+        "459e6d13-9e6f-acc2-cd9a-4fe895ff587a"
+      ],
+      "evidence": [
+        "results/20261106-212946_a100-integrated-rgb-training/remote_status.json",
+        "results/20261106-212946_a100-integrated-rgb-training/cache_audit.json",
+        "results/20261106-212946_a100-integrated-rgb-training/pilot.json"
+      ],
+      "training_run": "results/20261106-212946_a100-integrated-rgb-training",
+      "training_block_ids": [
+        "459e6d13-9e6f-acc2-cd9a-4fe895ff587a"
+      ],
+      "late_backfill_kst": "2026-11-07T21:00:24.595530+09:00",
+      "late_backfill_block_id": "459e6d13-9e6f-acc2-cd9a-4fe895ff587a"
+    },
+    "2026-11-07": {
+      "daily_root_block_id": "2d44639c-a682-cf25-2e9c-1f44af1198b2",
+      "url": "https://docs.craft.do/editor/d/b692aa0f-ec12-304e-a706-a5ed5b69b773/396d3a4d-3e24-0707-c763-a4426ca31240/x/129b946f-7f15-0326-31e9-98168646a813",
+      "block_ids": [
+        "129b946f-7f15-0326-31e9-98168646a813",
+        "5a95d566-46ce-2216-7963-a7f85dafe0f5",
+        "10945e17-a5b8-e552-8c8d-3db3b8a05944",
+        "e3dc4d93-1eda-ea9d-8459-dd4384bd1000",
+        "115377dc-4c9d-e6b6-8f54-461273b92a3b",
+        "34cb51af-da3a-fa70-c966-c33410896792",
+        "ae1a01eb-7546-d7eb-efc2-1d8ca82b8610",
+        "0a0b8904-031c-2661-918a-937708a662a3"
+      ],
+      "status": "joint_training_and_multimode_comparison_running",
+      "last_daily_check_kst": "2026-11-07T21:00:24.595530+09:00",
+      "readback_verified": true,
+      "evidence": [
+        "results\\20261106-212946_a100-integrated-rgb-training\\daily_evidence_20261107.json",
+        "results\\20261106-212946_a100-integrated-rgb-training\\craft_daily_20261107.json",
+        "results/20261107-143004_a100-multimode-coherence-study/monitor_20261107-204315.json"
+      ],
+      "main_samples": 136500,
+      "main_optimizer_steps": 136500,
+      "epoch": 18.2,
+      "lr": [
+        1.2607592117196704e-05,
+        4.202530705732235e-05
+      ],
+      "selection_epoch": 18,
+      "images_uploaded": false
+    },
+    "2026-11-08": {
+      "daily_root_block_id": "f3af3647-ff10-f800-d533-3565bf8694f5",
+      "url": "https://docs.craft.do/editor/d/b692aa0f-ec12-304e-a706-a5ed5b69b773/708f5cb4-8ca8-dda1-76c5-4718a633a6b5",
+      "block_ids": [
+        "cd0906d7-635a-182d-0bbc-561df378971c",
+        "89a6350d-38e5-0c74-b43d-04f9f77b5143",
+        "41e50643-7cf9-fcc5-cb9f-057451f95321",
+        "ac78a58e-5c19-11ec-39b0-496e8e786319",
+        "2234d957-7366-8b96-ef6f-84d879283cce",
+        "b4c8a767-476c-f98d-3a2d-3492da38a0ee",
+        "c2a609cb-a48d-7bf7-66d1-58521c089666",
+        "e999367e-ef71-eef8-6f31-9668ee8793a6"
+      ],
+      "status": "main_artifacts_complete_blur_control_running",
+      "last_daily_check_kst": "2026-11-08T21:03:21.182159+09:00",
+      "readback_verified": true,
+      "evidence": [
+        "results\\20261106-212946_a100-integrated-rgb-training\\training_completion_evidence.json",
+        "results\\20261106-212946_a100-integrated-rgb-training\\completion_remote_snapshot.json",
+        "results\\20261106-212946_a100-integrated-rgb-training\\daily_evidence_20261108.json",
+        "results/20261107-143004_a100-multimode-coherence-study/selection_report.md",
+        "results/20261108-101900_multimode-blur-control/monitor_20261108-204335.json"
+      ],
+      "main_samples": 225000,
+      "main_optimizer_steps": 225000,
+      "epoch": 30,
+      "selection_epoch": 30,
+      "lr": [
+        3e-06,
+        1e-05
+      ],
+      "images_uploaded": false,
+      "blur_checked_kst": "2026-11-08T21:01:52.060819+09:00",
+      "blur_samples": [
+        55450,
+        55350
+      ],
+      "blur_optimizer_steps": [
+        55450,
+        55350
+      ],
+      "blur_selection_epoch": 7,
+      "blur_lr_by_seed": {
+        "117": [
+          0.00027379482277431943,
+          0.00027379482277431943
+        ],
+        "229": [
+          0.0002754512702172881,
+          0.0002754512702172881
+        ]
+      },
+      "blur_eta_kst": "2026-11-09T00:47:00+09:00",
+      "blur_eta_excludes": "response probes and final comparison"
+    },
+    "2026-11-09": {
+      "daily_root_block_id": "b33dd4a9-ca01-368e-8b47-6b59d26396b0",
+      "url": "https://docs.craft.do/editor/d/b692aa0f-ec12-304e-a706-a5ed5b69b773/01cd75d5-8e38-a19d-eaef-b83df868895d",
+      "block_ids": [
+        "03acb0e0-6a23-48bd-6ba4-084632dc0064",
+        "29dc2c6e-e3dc-e330-32d8-47f6c72fa84d",
+        "13ba825c-82f7-3e79-7732-e276eb61644d",
+        "dc0efc7e-95f8-458f-13f5-fe1c01e7e5d7",
+        "053b9066-6dba-1329-a1ae-c9013b7b0134",
+        "7ae67994-0b0b-7606-19fb-abcc323eb5d9",
+        "7e931ea2-60be-5b0e-bf74-3709d5c5cb2c",
+        "f71ce577-c962-0195-72c6-f833708056ff"
+      ],
+      "status": "authorized_offline_study_final_report_complete",
+      "last_daily_check_kst": "2026-11-09T21:03:06.980696+09:00",
+      "readback_verified": true,
+      "images_uploaded": false,
+      "evidence": [
+        "results\\20261106-212946_a100-integrated-rgb-training\\daily_evidence_20261109.json",
+        "results/20261109-011639_multimode-sealed-test/final_report.md",
+        "results/20261109-011639_multimode-sealed-test/final_integrity_audit.json"
+      ],
+      "blur_samples": [
+        75000,
+        75000
+      ],
+      "blur_optimizer_steps": [
+        75000,
+        75000
+      ],
+      "blur_epoch": 10,
+      "blur_lr": [
+        0.0001,
+        0.0001
+      ],
+      "test_records_per_model": 400,
+      "test_model_count": 10,
+      "heldout_5mm_per_model": 100,
+      "all_evaluation_exit_codes": 0,
+      "physical_lut_verified": false
+    }
+  },
+  "server_audit": "results/20261106-184130_a100-slurm-access-check",
+  "ssh_alias": "a100-nh3d",
+  "recommended_training_host": "A100 job4635 training artifacts complete; scheduler exit code unavailable",
+  "active_transfer_run": null,
+  "transfer_monitor_automation_id": null,
+  "remote_dataset_root": "/shared/projects/khchoi/results/20261106-185858_a100-dataset-transfer/dataset",
+  "completed_transfer_run": "results/20261106-185858_a100-dataset-transfer",
+  "transfer_monitor_status": "deleted_after_verified_completion",
+  "transfer_completed_kst": "2026-11-06T20:45:44.273533+09:00",
+  "remote_training_run": "/shared/projects/khchoi/results/20261106-212946_a100-integrated-rgb-training",
+  "preprocessing_job": 4634,
+  "training_job": 4635,
+  "training_monitor_automation_id": null,
+  "main_training_started": true,
+  "current_training_phase": "joint_training_complete",
+  "main_started_kst": "2026-11-06T22:08:42.383098+09:00",
+  "last_training_monitor_kst": "2026-11-08T12:13:48.107073+09:00",
+  "latest_training_evidence": "results\\20261106-212946_a100-integrated-rgb-training\\training_completion_evidence.json",
+  "latest_completed_training_epoch": 30,
+  "latest_training_history_snapshot": "results/20261106-212946_a100-integrated-rgb-training/history_snapshot.json",
+  "training_artifacts_complete": true,
+  "slurm_normal_exit_verified": false,
+  "training_monitor_status": "deleted_after_artifact_completion_report_scheduler_exit_unverifiable",
+  "training_completed_kst": "2026-11-08T11:45:58.150575+09:00",
+  "reporting_automation_status": "deleted_after_final_report",
+  "reporting_ended_kst": "2026-11-09T21:03:06.980696+09:00",
+  "reporting_end_reason": "Authorized offline model comparison and final report complete; no running jobs. LUT distillation and physical replay verification remain unstarted, not claimed complete."
+}

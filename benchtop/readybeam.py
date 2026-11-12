@@ -121,6 +121,7 @@ class ReadyBeam:
             info.wShowWindow = 0
             subprocess.Popen([str(EXE)], cwd=EXE.parent, startupinfo=info)
         end = time.monotonic()+25
+        last_error = None
         while time.monotonic() < end:
             if forms():
                 self.form = one(forms())
@@ -131,10 +132,11 @@ class ReadyBeam:
                     self.main = named(tab, "Main")
                     self.state()
                     return
-                except RuntimeError:
-                    pass
+                except (RuntimeError, OSError) as exc:
+                    # Manufacturer startup may temporarily block its UI thread.
+                    last_error = exc
             time.sleep(.3)
-        raise RuntimeError("Expected connected READYBeam serial 23, firmware 2.00")
+        raise RuntimeError("Expected connected READYBeam serial 23, firmware 2.00") from last_error
 
     def state(self):
         named(self.form, "Connected")
